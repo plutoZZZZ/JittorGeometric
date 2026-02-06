@@ -13,6 +13,7 @@ jittor_geometric/data/conformer.py
 jittor_geometric/data/data.py
 jittor_geometric/data/dataset.py
 jittor_geometric/data/dictionary.py
+jittor_geometric/data/distchunk.py
 jittor_geometric/data/download.py
 jittor_geometric/data/graphchunk.py
 jittor_geometric/data/in_memory_dataset.py
@@ -73,8 +74,10 @@ jittor_geometric/nn/conv/clustergcn_conv.py
 jittor_geometric/nn/conv/egnn_conv.py
 jittor_geometric/nn/conv/even_conv.py
 jittor_geometric/nn/conv/gat_conv.py
+jittor_geometric/nn/conv/gat_v2_conv.py
 jittor_geometric/nn/conv/gcn2_conv.py
 jittor_geometric/nn/conv/gcn_conv.py
+jittor_geometric/nn/conv/gcnacl_conv.py
 jittor_geometric/nn/conv/gpr_conv.py
 jittor_geometric/nn/conv/lightgcn_conv.py
 jittor_geometric/nn/conv/message_passing.py
@@ -132,6 +135,7 @@ jittor_geometric/ops/aggregateWithWeight.py
 jittor_geometric/ops/cootocsc.py
 jittor_geometric/ops/cootocsr.py
 jittor_geometric/ops/csctocsr.py
+jittor_geometric/ops/distspmm.py
 jittor_geometric/ops/edgesoftmax.py
 jittor_geometric/ops/getweight.py
 jittor_geometric/ops/gpuinitco.py
@@ -151,6 +155,8 @@ jittor_geometric/ops/cpp/cootocsr_op.cc
 jittor_geometric/ops/cpp/cootocsr_op.h
 jittor_geometric/ops/cpp/csctocsr_op.cc
 jittor_geometric/ops/cpp/csctocsr_op.h
+jittor_geometric/ops/cpp/distspmm_op.cc
+jittor_geometric/ops/cpp/distspmm_op.h
 jittor_geometric/ops/cpp/edgesoftmax_op.cc
 jittor_geometric/ops/cpp/edgesoftmax_op.h
 jittor_geometric/ops/cpp/edgesoftmaxbackward_op.cc
@@ -173,6 +179,8 @@ jittor_geometric/ops/cpp/toundirected_op.cc
 jittor_geometric/ops/cpp/toundirected_op.h
 jittor_geometric/partition/__init__.py
 jittor_geometric/partition/chunk_manager.py
+jittor_geometric/partition/dist_partition.py
+jittor_geometric/partition/distchunk_manager.py
 jittor_geometric/partition/partition_graph.py
 jittor_geometric/transforms/__init__.py
 jittor_geometric/transforms/normalize_features.py
@@ -181,6 +189,7 @@ jittor_geometric/utils/bprloss.py
 jittor_geometric/utils/coalesce.py
 jittor_geometric/utils/convert.py
 jittor_geometric/utils/degree.py
+jittor_geometric/utils/distributed_utils.py
 jittor_geometric/utils/get_laplacian.py
 jittor_geometric/utils/gssl_utils.py
 jittor_geometric/utils/induced_graph.py

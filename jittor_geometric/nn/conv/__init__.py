@@ -20,6 +20,7 @@ from .transformer_conv import TransformerConv
 from .optbasis_conv import OptBasisConv
 from .clustergcn_conv import ClusterGCNConv
 from .sage_conv import SAGEConv
+from .gatv2_conv import GATV2Conv
 
 __all__ = [
     'MessagePassing',
@@ -29,6 +30,7 @@ __all__ = [
     'GCN2Conv',
     'MessagePassingNts',
     'GATConv',
+    'GATV2Conv',
     'EGNNConv',
     'APPNP',
     'GPRGNN',

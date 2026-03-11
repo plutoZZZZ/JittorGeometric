@@ -24,24 +24,28 @@ class ScatterToVertexFunc(Function):
     def execute(self,x,csc,flow):
         self.flow=flow
         self.csc=csc
-        # output dim
-        # print(x.shape)
-        # print(csc.row_indices.shape)
-        # print(csc.column_offset.shape)
         e_num=jt.size(csc.row_indices,0)
         feature_dim=jt.size(x,1)        
         v_num=jt.size(csc.column_offset,0)-1
         self.e_num=e_num
         self.v_num=v_num
         self.feature_dim=feature_dim
+        
+        # Convert flow to flag:
+        # flow='src' -> flag=0 (aggregate to src nodes)
+        # flow='dst' -> flag=1 (aggregate to dst nodes)  
+        flag = 0 if flow == 'src' else 1
+        self.flag = flag
+        
         output=jt.zeros(v_num,feature_dim)
-        scatter_op.edgetovertex(output,x,csc.row_indices,csc.column_offset,1).fetch_sync()
+        scatter_op.edgetovertex(output,x,csc.row_indices,csc.column_offset,flag).fetch_sync()
         return output
 
     def grad(self, grad_output):
         output_grad=jt.zeros(self.e_num,self.feature_dim)
         csc=self.csc
-        scatter_backward_op.scattertoedge(output_grad,grad_output,csc.row_indices,csc.column_offset,False,1).fetch_sync()
+        # For gradient, the flow direction is reversed
+        scatter_backward_op.scattertoedge(output_grad,grad_output,csc.row_indices,csc.column_offset,False,self.flag).fetch_sync()
         return output_grad,None,None
     
 

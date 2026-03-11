@@ -64,34 +64,49 @@ void EdgetovertexOp::jit_prepare(JK& jk) {
                     T_l local_dst=i/feature_size_;
                     T_l rank=i%feature_size_;
                     for(int i_i=column_offset[local_dst];i_i<column_offset[local_dst+1];i_i++){
-    //                     printf("local_dst: %d, rank: %d, column_offset[local_dst]: %d, column_offset[local_dst+1]: %d\n", 
-    //    local_dst, rank, column_offset[local_dst], column_offset[local_dst + 1]);
                         atomicAdd(&dst_feature[feature_size_*local_dst+rank],
                                 message[feature_size_*i_i+rank]);
                     }	
             }
     }
-     
+    
+    template <typename T_v,typename T_l>
+    __global__ void gather_msg_to_src( T_v* src_feature, T_v* message,
+                    const T_l *row_indices,const  T_l *column_offset,
+            T_l e_num_, T_l feature_size_){
+            int threadId = blockIdx.x *blockDim.x + threadIdx.x;
+            for(long i=threadId;i<feature_size_*e_num_;i+=blockDim.x*gridDim.x){
+                    T_l edge_idx=i/feature_size_;
+                    T_l rank=i%feature_size_;
+                    T_l local_src = row_indices[edge_idx];
+                    atomicAdd(&src_feature[feature_size_*local_src+rank],
+                            message[feature_size_*edge_idx+rank]);
+            }
+    }
 
     void EdgetovertexOp::jit_run() {
-        // std::cout<<"e2v gpu"<<std::endl;
         auto* __restrict__ out_ptr = outputVar->ptr<T>();
         auto* __restrict__ x_ptr = x->ptr<T>();
         auto* __restrict__ i_ptr = indices->ptr<Tint>();
         auto* __restrict__ o_ptr = offset->ptr<Tint>();
         Tint v_num=outputVar->shape[0];
+        Tint e_num=indices->shape[0];
         Tint feature_dim=x->shape[1];
-        // std::cout<<feature_dim;
-        // std::cout <<v_num;
-        // std::cout << "x: " << x << std::endl;
-        // std::cout << "outputVar: " << outputVar << std::endl;
-        // std::cout << "indices: " << indices << std::endl;
-        // std::cout << "offset: " << offset << std::endl;
         Tint blockSize = 128;
-        Tint numBlocks = (feature_dim * v_num + blockSize - 1) / blockSize;
-        gather_msg_to_dst<T,Tint><<<numBlocks,blockSize>>>(
-            out_ptr, x_ptr, i_ptr, o_ptr,
-            v_num, feature_dim);
+        
+        if(flag==0){
+            // Aggregate to source nodes
+            Tint numBlocks = (feature_dim * e_num + blockSize - 1) / blockSize;
+            gather_msg_to_src<T,Tint><<<numBlocks,blockSize>>>(
+                out_ptr, x_ptr, i_ptr, o_ptr,
+                e_num, feature_dim);
+        } else {
+            // Aggregate to destination nodes (flag==1)
+            Tint numBlocks = (feature_dim * v_num + blockSize - 1) / blockSize;
+            gather_msg_to_dst<T,Tint><<<numBlocks,blockSize>>>(
+                out_ptr, x_ptr, i_ptr, o_ptr,
+                v_num, feature_dim);
+        }
     }
     #endif //cuda
 #endif // JIT

@@ -1,8 +1,8 @@
 '''
 Author: lusz
 Date: 2024-07-01 15:42:52
-Modified for multi-head attention
-Description: GAT example on Cora dataset
+Modified for GATv2 with multi-head attention
+Description: GATv2 example on Cora dataset
 '''
 import os.path as osp
 import argparse
@@ -14,7 +14,7 @@ root = osp.dirname(osp.dirname(osp.abspath(__file__)))
 sys.path.append(root)
 from jittor_geometric.datasets import Planetoid
 import jittor_geometric.transforms as T
-from jittor_geometric.nn import GATConv
+from jittor_geometric.nn import GATv2Conv
 import time
 from jittor import Var
 from jittor_geometric.utils import add_remaining_self_loops
@@ -91,19 +91,19 @@ with jt.no_grad():
     data.csc = cootocsc(edge_index, edge_weight, v_num)
     data.csr = cootocsr(edge_index, edge_weight, v_num)
 
-# GAT model with multi-head attention
+# GATv2 model with multi-head attention
 # Standard configuration: 8 heads for layer 1, 1 head for layer 2
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         # First layer: 8 attention heads, each with 8 output features
         # concat=True means we concatenate the outputs of all heads
-        self.conv1 = GATConv(dataset.num_features, 8, e_num, 
+        self.conv1 = GATv2Conv(dataset.num_features, 8, e_num, 
                                heads=8, concat=True,
                                negative_slope=0.2, dropout=0.6,
                                cached=True, normalize=not args.use_gdc)
         # Second layer: 1 attention head, takes concatenated features
-        self.conv2 = GATConv(8 * 8, dataset.num_classes, e_num, 
+        self.conv2 = GATv2Conv(8 * 8, dataset.num_classes, e_num, 
                                heads=1, concat=False,
                                negative_slope=0.2, dropout=0.6,
                                cached=True, normalize=not args.use_gdc)

@@ -63,17 +63,35 @@ class EdgeSoftmaxFunc(Function):
     def execute(self,x,csc):
         self.x=x
         self.csc=csc
+        self.was_1d = (len(x.shape) == 1)
+        
+        # Ensure input is always 2D for C++ implementation
+        if self.was_1d:
+            x = x.reshape(-1, 1)
+            
         output=jt.zeros_like(x)
         edge_softmax_op.edgesoftmax(output,x,csc.row_indices,csc.column_offset)
         self.y=output
+        
+        # Restore original shape if needed
+        if self.was_1d:
+            output = output.reshape(-1)
+            
         return output
 
     def grad(self, grad_output):
+        y = self.y
+        if self.was_1d:
+            grad_output = grad_output.reshape(-1, 1)
+            
         output_grad=jt.zeros_like(grad_output)
-        edge_softmax_backward_op.edgesoftmaxbackward(output_grad,grad_output,self.y,self.csc.row_indices,self.csc.column_offset)
+        edge_softmax_backward_op.edgesoftmaxbackward(output_grad,grad_output,y,self.csc.row_indices,self.csc.column_offset)
+        
+        if self.was_1d:
+            output_grad = output_grad.reshape(-1)
+            
         return output_grad,None
     
-
 
 def EdgeSoftmax(x,csc):
     out = EdgeSoftmaxFunc.apply(x,csc)

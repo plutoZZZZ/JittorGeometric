@@ -127,7 +127,7 @@ class ModelTrainer:
         
         return self.model
     
-    def train(self, epochs=200):
+    def train(self, epochs=200, status_callback=None):
         print(f"\nTraining {self.model_name} on {self.dataset_name} for {epochs} epochs...")
         
         self.model.train()
@@ -140,8 +140,13 @@ class ModelTrainer:
             self.optimizer.backward(loss)
             self.optimizer.step()
             
+            acc = self.test()
+            
+            # Call status callback if provided
+            if status_callback:
+                status_callback(epoch, loss.item(), acc)
+            
             if epoch % 10 == 0:
-                acc = self.test()
                 print(f"Epoch {epoch:3d}, Loss: {loss.item():.4f}, Acc: {acc:.4f}")
         
         total_time = time.time() - start_time

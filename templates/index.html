@@ -269,9 +269,13 @@
                 <div class="form-group">
                     <label for="model_name">模型选择</label>
                     <select id="model_name">
-                        <option value="GCN">GCN</option>
-                        <option value="GAT">GAT</option>
-                        <option value="GraphSAGE">GraphSAGE</option>
+                        <option value="GCN">GCN (Graph Convolutional Network)</option>
+                        <option value="GAT">GAT (Graph Attention Network)</option>
+                        <option value="GraphSAGE">GraphSAGE (Graph Sample and Aggregate)</option>
+                        <option value="GIN">GIN (Graph Isomorphism Network)</option>
+                        <option value="GCNv2">GCNv2 (Improved Graph Convolutional Network)</option>
+                        <option value="PNA">PNA (Principal Neighbourhood Aggregation)</option>
+                        <option value="RGCN">RGCN (Relational Graph Convolutional Network)</option>
                     </select>
                 </div>
 
@@ -310,6 +314,7 @@
                 </div>
 
                 <button id="train_btn">开始训练</button>
+                <button id="stop-btn" disabled>停止训练</button>
             </div>
 
             <div class="status-section">
@@ -403,8 +408,8 @@
             });
         });
 
-        // Graph visualization
-        function renderGraph(graphData) {
+        // Graph visualization with fusion information
+        function renderGraph(graphData, fusionInfo = {}) {
             const container = document.querySelector('#graph-tab .graph-container');
             if (!graphData || !graphData.nodes) {
                 container.innerHTML = '<div><h3>计算图可视化</h3><p>训练开始后将显示模型计算图</p></div>';
@@ -430,7 +435,10 @@
                 circle.setAttribute('cx', x);
                 circle.setAttribute('cy', y);
                 circle.setAttribute('r', nodeRadius);
-                circle.setAttribute('fill', '#667eea');
+                
+                // Color nodes based on fusion status
+                const isFused = fusionInfo[node.id] && fusionInfo[node.id].includes('Fused');
+                circle.setAttribute('fill', isFused ? '#f093fb' : '#667eea');
                 circle.setAttribute('stroke', '#333');
                 circle.setAttribute('stroke-width', '2');
                 svg.appendChild(circle);
@@ -443,6 +451,13 @@
                 text.setAttribute('fill', '#333');
                 text.textContent = node.id;
                 svg.appendChild(text);
+                
+                // Add fusion info tooltip
+                if (isFused) {
+                    const tooltip = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+                    tooltip.textContent = fusionInfo[node.id];
+                    circle.appendChild(tooltip);
+                }
             });
             
             // Draw edges
@@ -493,7 +508,8 @@
                     const data = await response.json();
                     
                     if (data.computation_graph) {
-                        renderGraph(data.computation_graph);
+                        const fusionInfo = data.fusion_stats ? data.fusion_stats.fusion_info : {};
+                        renderGraph(data.computation_graph, fusionInfo);
                     }
                     
                     if (data.fusion_stats) {
@@ -504,20 +520,23 @@
                 }
             }, 2000);
         }
-
+        
         function stopGraphPolling() {
             if (graphPollInterval) {
                 clearInterval(graphPollInterval);
+                graphPollInterval = null;
             }
         }
 
         // Training functionality
         const trainBtn = document.getElementById('train_btn');
+        const stopBtn = document.getElementById('stop-btn');
         const statusDiv = document.getElementById('status');
         const progressBar = document.getElementById('progress_bar');
 
         trainBtn.addEventListener('click', async () => {
             trainBtn.disabled = true;
+            stopBtn.disabled = false;
             statusDiv.innerHTML = '正在启动训练...';
             statusDiv.className = 'status running';
 
@@ -560,6 +579,7 @@
                     } else {
                         clearInterval(interval);
                         trainBtn.disabled = false;
+                        stopBtn.disabled = true;
 
                         if (status.error) {
                             statusDiv.innerHTML = `错误: ${status.error}`;
@@ -579,6 +599,20 @@
                     statusDiv.className = 'status error';
                     stopGraphPolling();
                 }
+        });
+
+        // Stop button functionality
+        stopBtn.addEventListener('click', async () => {
+            try {
+                await fetch('/api/stop-training', { method: 'POST' });
+                stopBtn.disabled = true;
+                trainBtn.disabled = false;
+                statusDiv.innerHTML = '训练已停止';
+                statusDiv.className = 'status error';
+                stopGraphPolling();
+            } catch (error) {
+                console.error('Error stopping training:', error);
+            }
         });
     </script>
 </body>

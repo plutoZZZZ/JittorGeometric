@@ -416,14 +416,17 @@
                 return;
             }
             
-            container.innerHTML = `<div><h3>计算图可视化</h3><p>节点数: ${graphData.nodes.length}, 边数: ${graphData.edges.length}</p></div>`;
+            // Clear container and add title
+            const edgesCount = graphData.edges ? graphData.edges.length : graphData.links ? graphData.links.length : 0;
+            container.innerHTML = `<div style="margin-bottom: 20px;"><h3>计算图可视化</h3><p>节点数: ${graphData.nodes.length}, 边数: ${edgesCount}</p></div>`;
             
             // Create simple SVG visualization
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.setAttribute('width', '100%');
-            svg.setAttribute('height', '400');
+            svg.setAttribute('height', '500');
             svg.style.background = '#f8f9fa';
             svg.style.borderRadius = '8px';
+            svg.style.marginTop = '20px';
             
             // Draw nodes
             const nodeRadius = 10;
@@ -460,8 +463,9 @@
                 }
             });
             
-            // Draw edges
-            graphData.edges.forEach(edge => {
+            // Draw edges (handle both 'edges' and 'links' formats)
+            const edges = graphData.edges || graphData.links;
+            edges.forEach(edge => {
                 const source = graphData.nodes.find(n => n.id === edge.source);
                 const target = graphData.nodes.find(n => n.id === edge.target);
                 
@@ -485,10 +489,11 @@
                 }
             });
             
+            // Append SVG to container
             container.appendChild(svg);
         }
 
-        // Update fusion stats
+        // Update fusion stats and Jittor fusion details
         function updateFusionStats(stats) {
             if (!stats) return;
             
@@ -497,6 +502,40 @@
             statValues[1].textContent = stats.fused_ops;
             statValues[2].textContent = `${stats.fusion_rate.toFixed(1)}%`;
             statValues[3].textContent = `${stats.speedup.toFixed(1)}x`;
+            
+            // Add Jittor fusion details to the fusion tab
+            const fusionTab = document.getElementById('fusion-tab');
+            let detailsContainer = fusionTab.querySelector('.fusion-details');
+            if (!detailsContainer) {
+                detailsContainer = document.createElement('div');
+                detailsContainer.className = 'fusion-details';
+                detailsContainer.style.marginTop = '20px';
+                detailsContainer.style.padding = '20px';
+                detailsContainer.style.background = 'white';
+                detailsContainer.style.borderRadius = '10px';
+                fusionTab.appendChild(detailsContainer);
+            }
+            
+            detailsContainer.innerHTML = `
+                <h3>Jittor算子融合统计</h3>
+                <h4>Jittor融合技术:</h4>
+                <ul>
+                    <li><strong>Kernel Fusion</strong> - 将多个操作合并为单个CUDA内核</li>
+                    <li><strong>Memory Fusion</strong> - 通过重用缓冲区减少内存访问</li>
+                    <li><strong>Loop Fusion</strong> - 合并嵌套循环以提高缓存利用率</li>
+                </ul>
+                <h4>性能提升:</h4>
+                <ul>
+                    <li>减少内存带宽使用</li>
+                    <li>降低内核启动开销</li>
+                    <li>提高缓存局部性</li>
+                    <li>提升整体吞吐量</li>
+                </ul>
+                <h4>融合详情:</h4>
+                <ul>
+                    ${Object.entries(stats.fusion_info || {}).map(([op, desc]) => `<li>${op}: ${desc}</li>`).join('')}
+                </ul>
+            `;
         }
 
         // Poll graph data

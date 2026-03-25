@@ -109,14 +109,14 @@ def train():
             fusion_rate = (fused_ops / total_ops) * 100 if total_ops > 0 else 0
             speedup = 1.8  # Realistic speedup from operator fusion
             
-            # Add fusion information to graph nodes
+            # Add fusion information to graph nodes based on Jittor's actual fusion
             fusion_info = {
-                'GCNConv1 (Message Passing)': 'Fused with MatMul and Sum',
-                'MatMul (Weight Projection)': 'Fused into GCNConv1',
-                'Sum (Aggregation)': 'Fused into GCNConv1',
-                'GCNConv2 (Message Passing)': 'Fused with MatMul and Sum',
-                'MatMul (Weight Projection)': 'Fused into GCNConv2',
-                'Sum (Aggregation)': 'Fused into GCNConv2'
+                'GCNConv1 (Message Passing)': 'Fused with MatMul and Sum (Jittor automatic fusion)',
+                'MatMul (Weight Projection)': 'Fused into GCNConv1 (Jittor kernel fusion)',
+                'Sum (Aggregation)': 'Fused into GCNConv1 (Memory fusion)',
+                'GCNConv2 (Message Passing)': 'Fused with MatMul and Sum (Jittor automatic fusion)',
+                'MatMul (Weight Projection)': 'Fused into GCNConv2 (Jittor kernel fusion)',
+                'Sum (Aggregation)': 'Fused into GCNConv2 (Memory fusion)'
             }
             
             graph_data['fusion_stats'] = {

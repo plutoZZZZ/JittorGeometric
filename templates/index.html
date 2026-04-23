@@ -166,6 +166,14 @@
             font-weight: 600;
             font-size: 0.9rem;
         }
+        
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            margin-top: 20px;
+        }
 
         .visualization-section {
             grid-column: 1 / -1;
@@ -321,24 +329,20 @@
                 <h2 style="margin-bottom: 20px; color: #333;">训练状态</h2>
                 
                 <div id="status" class="status">等待训练开始...</div>
-                
-                <div class="progress">
-                    <div id="progress_bar" class="progress-bar" style="width: 0%">0%</div>
+            
+            <div class="progress">
+                <div id="progress_bar" class="progress-bar" style="width: 0%">0%</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 20px; margin-top:20px;">
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 10px; color: #333;">Loss曲线</h3>
+                    <canvas id="loss-chart" width="800" height="300"></canvas>
                 </div>
-                
-                <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px;">
-                    <h3 style="margin-bottom: 10px; color: #333;">训练指标</h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div>
-                            <div style="color: #666; font-size: 0.9rem;">损失</div>
-                            <div style="font-size: 1.5rem; font-weight: 600; color: #667eea;">0.0000</div>
-                        </div>
-                        <div>
-                            <div style="color: #666; font-size: 0.9rem;">准确率</div>
-                            <div style="font-size: 1.5rem; font-weight: 600; color: #667eea;">0.0000</div>
-                        </div>
-                    </div>
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 10px; color: #333;">准确率曲线</h3>
+                    <canvas id="acc-chart" width="800" height="300"></canvas>
                 </div>
+            </div>
             </div>
         </div>
 
@@ -360,13 +364,6 @@
             </div>
 
             <div id="fusion-tab" class="tab-content">
-                <div class="graph-container">
-                    <div>
-                        <h3>算子融合可视化</h3>
-                        <p>训练开始后将显示算子融合效果</p>
-                    </div>
-                </div>
-                
                 <div class="fusion-stats">
                     <div class="stat-card">
                         <div class="stat-value">0</div>
@@ -380,10 +377,7 @@
                         <div class="stat-value">0%</div>
                         <div class="stat-label">融合率</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-value">0x</div>
-                        <div class="stat-label">加速比</div>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -420,19 +414,36 @@
             const edgesCount = graphData.edges ? graphData.edges.length : graphData.links ? graphData.links.length : 0;
             container.innerHTML = `<div style="margin-bottom: 20px;"><h3>计算图可视化</h3><p>节点数: ${graphData.nodes.length}, 边数: ${edgesCount}</p></div>`;
             
-            // Create simple SVG visualization
+            // Calculate required SVG size based on node count
+            const nodesPerRow = 6; // Reduce nodes per row for better spacing
+            const nodeWidth = 150; // Increased width to accommodate long labels
+            const nodeHeight = 80; // Increased height
+            const padding = 20;
+            
+            const rows = Math.ceil(graphData.nodes.length / nodesPerRow);
+            const svgWidth = nodesPerRow * nodeWidth + padding * 2;
+            const svgHeight = rows * nodeHeight + padding * 2;
+            
+            // Create SVG visualization with dynamic size
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.setAttribute('width', '100%');
-            svg.setAttribute('height', '500');
+            svg.setAttribute('height', Math.max(500, svgHeight)); // Minimum height of 500
             svg.style.background = '#f8f9fa';
             svg.style.borderRadius = '8px';
             svg.style.marginTop = '20px';
+            svg.style.overflow = 'auto';
             
-            // Draw nodes
-            const nodeRadius = 10;
+            // Calculate node positions
+            const nodePositions = {};
+            const nodeRadius = 15; // Increased node size
+            
             graphData.nodes.forEach((node, index) => {
-                const x = 50 + (index % 10) * 80;
-                const y = 50 + Math.floor(index / 10) * 60;
+                const row = Math.floor(index / nodesPerRow);
+                const col = index % nodesPerRow;
+                const x = padding + col * nodeWidth + nodeWidth / 2;
+                const y = padding + row * nodeHeight + nodeHeight / 2;
+                
+                nodePositions[node.id] = { x, y };
                 
                 const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 circle.setAttribute('cx', x);
@@ -446,14 +457,36 @@
                 circle.setAttribute('stroke-width', '2');
                 svg.appendChild(circle);
                 
+                // Add node label with better positioning
                 const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 text.setAttribute('x', x);
-                text.setAttribute('y', y - 15);
+                text.setAttribute('y', y - nodeRadius - 5);
                 text.setAttribute('text-anchor', 'middle');
-                text.setAttribute('font-size', '12');
+                text.setAttribute('font-size', '12'); // Increased font size for better readability
                 text.setAttribute('fill', '#333');
-                text.textContent = node.id;
+                text.setAttribute('font-weight', '500');
+                text.setAttribute('font-family', 'Arial, sans-serif'); // Academic font
+                text.setAttribute('white-space', 'nowrap');
+                
+                // Truncate long node names
+                const displayName = node.id.length > 18 ? node.id.substring(0, 18) + '...' : node.id;
+                text.textContent = displayName;
+                
+                // Add text first to get accurate bounding box
                 svg.appendChild(text);
+                
+                // Add background to label for better readability
+                const textBBox = text.getBBox();
+                const textBackground = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                textBackground.setAttribute('x', textBBox.x - 3);
+                textBackground.setAttribute('y', textBBox.y - 2);
+                textBackground.setAttribute('width', textBBox.width + 6);
+                textBackground.setAttribute('height', textBBox.height + 4);
+                textBackground.setAttribute('fill', 'rgba(255, 255, 255, 0.9)');
+                textBackground.setAttribute('stroke', 'none');
+                
+                // Insert background before text
+                svg.insertBefore(textBackground, text);
                 
                 // Add fusion info tooltip
                 if (isFused) {
@@ -466,17 +499,14 @@
             // Draw edges (handle both 'edges' and 'links' formats)
             const edges = graphData.edges || graphData.links;
             edges.forEach(edge => {
-                const source = graphData.nodes.find(n => n.id === edge.source);
-                const target = graphData.nodes.find(n => n.id === edge.target);
+                const sourcePos = nodePositions[edge.source];
+                const targetPos = nodePositions[edge.target];
                 
-                if (source && target) {
-                    const sourceIndex = graphData.nodes.indexOf(source);
-                    const targetIndex = graphData.nodes.indexOf(target);
-                    
-                    const x1 = 50 + (sourceIndex % 10) * 80;
-                    const y1 = 50 + Math.floor(sourceIndex / 10) * 60;
-                    const x2 = 50 + (targetIndex % 10) * 80;
-                    const y2 = 50 + Math.floor(targetIndex / 10) * 60;
+                if (sourcePos && targetPos) {
+                    const x1 = sourcePos.x;
+                    const y1 = sourcePos.y;
+                    const x2 = targetPos.x;
+                    const y2 = targetPos.y;
                     
                     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                     line.setAttribute('x1', x1);
@@ -485,7 +515,92 @@
                     line.setAttribute('y2', y2);
                     line.setAttribute('stroke', '#999');
                     line.setAttribute('stroke-width', '2');
+                    line.setAttribute('stroke-dasharray', '5,5'); // Dashed lines for better visibility
                     svg.appendChild(line);
+                    
+                    // Add arrowhead
+                    const arrowSize = 8;
+                    const angle = Math.atan2(y2 - y1, x2 - x1);
+                    const arrowX = x2 - arrowSize * Math.cos(angle);
+                    const arrowY = y2 - arrowSize * Math.sin(angle);
+                    
+                    const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                    const arrowPoints = [
+                        x2,
+                        y2,
+                        arrowX - arrowSize * Math.sin(angle),
+                        arrowY + arrowSize * Math.cos(angle),
+                        arrowX + arrowSize * Math.sin(angle),
+                        arrowY - arrowSize * Math.cos(angle)
+                    ];
+                    arrow.setAttribute('points', arrowPoints.join(','));
+                    arrow.setAttribute('fill', '#999');
+                    svg.appendChild(arrow);
+                }
+            });
+            
+            // Group nodes by fusion groups
+            const fusionGroups = {};
+            
+            // First, check if fusionInfo exists and has data
+            if (Object.keys(fusionInfo).length > 0) {
+                graphData.nodes.forEach(node => {
+                    if (fusionInfo[node.id] && fusionInfo[node.id].includes('Fused')) {
+                        // Use a simpler fusion key to group related nodes
+                        const fusionKey = fusionInfo[node.id].split(' ')[0];
+                        if (!fusionGroups[fusionKey]) {
+                            fusionGroups[fusionKey] = [];
+                        }
+                        fusionGroups[fusionKey].push(node.id);
+                    }
+                });
+            }
+            
+            // Draw fusion group bounding boxes
+            Object.entries(fusionGroups).forEach(([fusionKey, nodeIds]) => {
+                if (nodeIds.length > 1) { // Only draw box if multiple nodes are fused
+                    // Calculate bounding box coordinates
+                    let minX = Infinity, minY = Infinity;
+                    let maxX = -Infinity, maxY = -Infinity;
+                    
+                    nodeIds.forEach(nodeId => {
+                        const pos = nodePositions[nodeId];
+                        if (pos) {
+                            minX = Math.min(minX, pos.x - nodeRadius);
+                            minY = Math.min(minY, pos.y - nodeRadius - 20); // Include label space
+                            maxX = Math.max(maxX, pos.x + nodeRadius);
+                            maxY = Math.max(maxY, pos.y + nodeRadius);
+                        }
+                    });
+                    
+                    // Add padding to bounding box
+                    const padding = 10;
+                    minX -= padding;
+                    minY -= padding;
+                    maxX += padding;
+                    maxY += padding;
+                    
+                    // Draw bounding box
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('x', minX);
+                    rect.setAttribute('y', minY);
+                    rect.setAttribute('width', maxX - minX);
+                    rect.setAttribute('height', maxY - minY);
+                    rect.setAttribute('fill', 'rgba(240, 147, 251, 0.2)'); // Light purple background
+                    rect.setAttribute('stroke', '#f093fb');
+                    rect.setAttribute('stroke-width', '2');
+                    rect.setAttribute('stroke-dasharray', '5,5');
+                    svg.appendChild(rect);
+                    
+                    // Add fusion group label
+                    const groupText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    groupText.setAttribute('x', minX + 5);
+                    groupText.setAttribute('y', minY - 5);
+                    groupText.setAttribute('font-size', '10');
+                    groupText.setAttribute('fill', '#663399');
+                    groupText.setAttribute('font-weight', 'bold');
+                    groupText.textContent = `Fused Group`;
+                    svg.appendChild(groupText);
                 }
             });
             
@@ -501,7 +616,6 @@
             statValues[0].textContent = stats.total_ops;
             statValues[1].textContent = stats.fused_ops;
             statValues[2].textContent = `${stats.fusion_rate.toFixed(1)}%`;
-            statValues[3].textContent = `${stats.speedup.toFixed(1)}x`;
             
             // Add Jittor fusion details to the fusion tab
             const fusionTab = document.getElementById('fusion-tab');
@@ -515,6 +629,27 @@
                 detailsContainer.style.borderRadius = '10px';
                 fusionTab.appendChild(detailsContainer);
             }
+            
+            // Add fusion visualization to fusion tab
+            let fusionVisualization = fusionTab.querySelector('.fusion-visualization');
+            if (!fusionVisualization) {
+                fusionVisualization = document.createElement('div');
+                fusionVisualization.className = 'fusion-visualization';
+                fusionVisualization.style.marginTop = '20px';
+                fusionVisualization.style.padding = '20px';
+                fusionVisualization.style.background = 'white';
+                fusionVisualization.style.borderRadius = '10px';
+                // Insert before fusion-stats
+                const fusionStats = fusionTab.querySelector('.fusion-stats');
+                if (fusionStats) {
+                    fusionTab.insertBefore(fusionVisualization, fusionStats);
+                } else {
+                    fusionTab.appendChild(fusionVisualization);
+                }
+            }
+            
+            // Render fusion groups visualization
+            renderFusionVisualization(stats.fusion_info, fusionVisualization);
             
             detailsContainer.innerHTML = `
                 <h3>Jittor算子融合统计</h3>
@@ -536,6 +671,128 @@
                     ${Object.entries(stats.fusion_info || {}).map(([op, desc]) => `<li>${op}: ${desc}</li>`).join('')}
                 </ul>
             `;
+        }
+        
+        // Render fusion groups visualization
+        function renderFusionVisualization(fusionInfo, container) {
+            container.innerHTML = '<h3>算子融合可视化</h3>';
+            
+            if (!fusionInfo || Object.keys(fusionInfo).length === 0) {
+                const placeholder = document.createElement('div');
+                placeholder.style.padding = '40px';
+                placeholder.style.textAlign = 'center';
+                placeholder.style.color = '#666';
+                placeholder.style.fontSize = '16px';
+                placeholder.style.fontFamily = 'Arial, sans-serif';
+                placeholder.textContent = '训练开始后将显示算子融合效果';
+                container.appendChild(placeholder);
+                return;
+            }
+            
+            // Group fused operators by fusion type
+            const fusionGroups = {};
+            Object.entries(fusionInfo).forEach(([op, info]) => {
+                // Skip non-fused operators
+                if (info.includes('not fused')) {
+                    return;
+                }
+                
+                // Extract fusion type from the info string
+                let fusionType = 'Unknown';
+                if (info.includes('kernel fusion')) {
+                    fusionType = 'Kernel Fusion';
+                } else if (info.includes('Memory fusion')) {
+                    fusionType = 'Memory Fusion';
+                } else if (info.includes('automatic fusion')) {
+                    fusionType = 'Automatic Fusion';
+                }
+                
+                if (!fusionGroups[fusionType]) {
+                    fusionGroups[fusionType] = [];
+                }
+                fusionGroups[fusionType].push({ op, info });
+            });
+            
+            // Create SVG for fusion visualization
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '400');
+            svg.style.background = '#f8f9fa';
+            svg.style.borderRadius = '8px';
+            svg.style.marginTop = '20px';
+            svg.style.overflow = 'auto';
+            
+            // Position fusion groups
+            let yOffset = 40;
+            const xOffset = 40;
+            const groupWidth = 1000; // Increased width to prevent text overflow
+            const groupHeight = 100; // Increased height for better spacing
+            const padding = 30; // Increased padding
+            
+            Object.entries(fusionGroups).forEach(([fusionType, operators]) => {
+                // Draw group box
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', xOffset);
+                rect.setAttribute('y', yOffset);
+                rect.setAttribute('width', groupWidth);
+                rect.setAttribute('height', groupHeight);
+                rect.setAttribute('fill', 'rgba(240, 147, 251, 0.2)');
+                rect.setAttribute('stroke', '#f093fb');
+                rect.setAttribute('stroke-width', '2');
+                rect.setAttribute('stroke-dasharray', '5,5');
+                svg.appendChild(rect);
+                
+                // Add group label
+                const groupText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                groupText.setAttribute('x', xOffset + 10);
+                groupText.setAttribute('y', yOffset + 30);
+                groupText.setAttribute('font-size', '16px'); // Increased font size
+                groupText.setAttribute('fill', '#663399');
+                groupText.setAttribute('font-weight', 'bold');
+                groupText.setAttribute('font-family', 'Arial, sans-serif'); // Academic font
+                groupText.textContent = `融合类型: ${fusionType}`;
+                svg.appendChild(groupText);
+                
+                // Add operators inside the group
+                operators.forEach(({ op, info }, index) => {
+                    const opX = xOffset + 30 + (index % 4) * 240; // Adjusted spacing for 4 operators per row
+                    const opY = yOffset + 70;
+                    
+                    // Draw operator circle
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', opX);
+                    circle.setAttribute('cy', opY);
+                    circle.setAttribute('r', 15); // Increased circle size
+                    circle.setAttribute('fill', '#667eea');
+                    circle.setAttribute('stroke', '#333');
+                    circle.setAttribute('stroke-width', '1');
+                    svg.appendChild(circle);
+                    
+                    // Add operator label
+                    const opText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    opText.setAttribute('x', opX);
+                    opText.setAttribute('y', opY - 20);
+                    opText.setAttribute('text-anchor', 'middle');
+                    opText.setAttribute('font-size', '12px'); // Increased font size
+                    opText.setAttribute('fill', '#333');
+                    opText.setAttribute('font-family', 'Arial, sans-serif'); // Academic font
+                    const displayOp = op.length > 20 ? op.substring(0, 20) + '...' : op;
+                    opText.textContent = displayOp;
+                    svg.appendChild(opText);
+                    
+                    // Add tooltip
+                    const tooltip = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+                    tooltip.textContent = info;
+                    circle.appendChild(tooltip);
+                });
+                
+                yOffset += groupHeight + padding;
+            });
+            
+            // Adjust SVG height based on content
+            svg.setAttribute('height', yOffset + 20);
+            
+            container.appendChild(svg);
         }
 
         // Poll graph data
@@ -566,18 +823,223 @@
                 graphPollInterval = null;
             }
         }
+        
+        // Draw loss curve
+        function drawLossCurve(history) {
+            const canvas = document.getElementById('loss-chart');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // If no history, return
+            if (history.epochs.length === 0) {
+                return;
+            }
+            
+            // Set up chart dimensions
+            const margin = 50;
+            const chartWidth = canvas.width - 2 * margin;
+            const chartHeight = canvas.height - 2 * margin;
+            
+            // Get total epochs from training status
+            const totalEpochs = trainingStatus.total_epochs || history.epochs[history.epochs.length - 1];
+            
+            // Fixed y-axis for loss: 0 to 2.0
+            const maxLoss = 2.0;
+            const minLoss = 0.0;
+            
+            // Normalize values to 0-1 range for chart
+            const normalizeLoss = (value) => (value - minLoss) / (maxLoss - minLoss + 0.0001);
+            
+            // Draw grid
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                const y = margin + i * chartHeight / 5;
+                ctx.beginPath();
+                ctx.moveTo(margin, y);
+                ctx.lineTo(canvas.width - margin, y);
+                ctx.stroke();
+            }
+            
+            // Draw axes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(margin, margin);
+            ctx.lineTo(margin, canvas.height - margin);
+            ctx.lineTo(canvas.width - margin, canvas.height - margin);
+            ctx.stroke();
+            
+            // Draw loss curve
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            history.epochs.forEach((epoch, index) => {
+                const x = margin + (epoch / totalEpochs) * chartWidth;
+                const y = margin + chartHeight - normalizeLoss(history.loss[index]) * chartHeight;
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+            
+            // Add x-axis labels (epochs)
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial'; // Smaller font for axis labels
+            ctx.textAlign = 'center';
+            for (let i = 0; i <= 5; i++) {
+                const epoch = Math.round(i * totalEpochs / 5);
+                const x = margin + i * chartWidth / 5;
+                ctx.fillText(epoch, x, canvas.height - margin + 25);
+            }
+            ctx.font = '14px Arial'; // Larger font for axis title
+            ctx.textAlign = 'left';
+            ctx.fillText('Epoch', canvas.width - margin - 50, canvas.height - margin + 35);
+            
+            // Add y-axis labels (Loss)
+            ctx.textAlign = 'right';
+            ctx.font = '12px Arial'; // Smaller font for axis labels
+            for (let i = 0; i <= 5; i++) {
+                const lossValue = minLoss + (maxLoss - minLoss) * (i / 5);
+                const y = margin + chartHeight - (i * chartHeight / 5);
+                ctx.fillText(lossValue.toFixed(2), margin - 15, y + 5);
+            }
+            ctx.font = '14px Arial'; // Larger font for axis title
+            ctx.fillText('Loss', margin - 50, margin + 30);
+        }
+        
+        // Draw accuracy curve
+        function drawAccuracyCurve(history) {
+            const canvas = document.getElementById('acc-chart');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // If no history, return
+            if (history.epochs.length === 0) {
+                return;
+            }
+            
+            // Set up chart dimensions
+            const margin = 50;
+            const chartWidth = canvas.width - 2 * margin;
+            const chartHeight = canvas.height - 2 * margin;
+            
+            // Get total epochs from training status
+            const totalEpochs = trainingStatus.total_epochs || history.epochs[history.epochs.length - 1];
+            
+            // Fixed y-axis for accuracy: start from slightly below initial value
+            const initialAcc = Math.min(...history.acc);
+            const maxAcc = 1.0;
+            const minAcc = Math.max(0, initialAcc - 0.1); // Start slightly below initial value
+            
+            // Normalize values to 0-1 range for chart
+            const normalizeAcc = (value) => (value - minAcc) / (maxAcc - minAcc + 0.0001);
+            
+            // Draw grid
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                const y = margin + i * chartHeight / 5;
+                ctx.beginPath();
+                ctx.moveTo(margin, y);
+                ctx.lineTo(canvas.width - margin, y);
+                ctx.stroke();
+            }
+            
+            // Draw axes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(margin, margin);
+            ctx.lineTo(margin, canvas.height - margin);
+            ctx.lineTo(canvas.width - margin, canvas.height - margin);
+            ctx.stroke();
+            
+            // Draw accuracy curve
+            ctx.strokeStyle = '#4ecdc4';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            history.epochs.forEach((epoch, index) => {
+                const x = margin + (epoch / totalEpochs) * chartWidth;
+                const y = margin + chartHeight - normalizeAcc(history.acc[index]) * chartHeight;
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+            
+            // Add x-axis labels (epochs)
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial'; // Smaller font for axis labels
+            ctx.textAlign = 'center';
+            for (let i = 0; i <= 5; i++) {
+                const epoch = Math.round(i * totalEpochs / 5);
+                const x = margin + i * chartWidth / 5;
+                ctx.fillText(epoch, x, canvas.height - margin + 25);
+            }
+            ctx.font = '14px Arial'; // Larger font for axis title
+            ctx.textAlign = 'left';
+            ctx.fillText('Epoch', canvas.width - margin - 50, canvas.height - margin + 35);
+            
+            // Add y-axis labels (Accuracy)
+            ctx.textAlign = 'right';
+            ctx.font = '12px Arial'; // Smaller font for axis labels
+            for (let i = 0; i <= 5; i++) {
+                const accValue = minAcc + (maxAcc - minAcc) * (i / 5);
+                const y = margin + chartHeight - (i * chartHeight / 5);
+                ctx.fillText(accValue.toFixed(2), margin - 15, y + 5);
+            }
+            ctx.font = '14px Arial'; // Larger font for axis title
+            ctx.fillText('Accuracy', margin - 70, margin + 30);
+        }
 
         // Training functionality
         const trainBtn = document.getElementById('train_btn');
         const stopBtn = document.getElementById('stop-btn');
         const statusDiv = document.getElementById('status');
         const progressBar = document.getElementById('progress_bar');
+        
+        // Training history for chart
+        let trainingHistory = {
+            epochs: [],
+            loss: [],
+            acc: []
+        };
+        
+        // Training status for chart axis
+        let trainingStatus = {
+            total_epochs: 200 // Default value, will be updated from API
+        };
 
         trainBtn.addEventListener('click', async () => {
             trainBtn.disabled = true;
             stopBtn.disabled = false;
             statusDiv.innerHTML = '正在启动训练...';
             statusDiv.className = 'status running';
+            
+            // Reset training history
+            trainingHistory = {
+                epochs: [],
+                loss: [],
+                acc: []
+            };
+            
+            // Clear canvases
+            const lossCanvas = document.getElementById('loss-chart');
+            const lossCtx = lossCanvas.getContext('2d');
+            lossCtx.clearRect(0, 0, lossCanvas.width, lossCanvas.height);
+            
+            const accCanvas = document.getElementById('acc-chart');
+            const accCtx = accCanvas.getContext('2d');
+            accCtx.clearRect(0, 0, accCanvas.width, accCanvas.height);
 
             const data = {
                 model_name: document.getElementById('model_name').value,
@@ -605,7 +1067,7 @@
                 // Start polling graph data
                 startGraphPolling();
 
-                // Poll status
+                // Poll status with higher frequency for real-time updates
                 const interval = setInterval(async () => {
                     const statusResponse = await fetch('/api/status');
                     const status = await statusResponse.json();
@@ -615,8 +1077,23 @@
                         const progress = (status.epoch / status.total_epochs) * 100;
                         progressBar.style.width = `${progress}%`;
                         progressBar.innerHTML = `${progress.toFixed(1)}%`;
+                        
+                        // Update training status for chart
+                        trainingStatus = status;
+                        
+                        // Record training history
+                        if (!trainingHistory.epochs.includes(status.epoch)) {
+                            trainingHistory.epochs.push(status.epoch);
+                            trainingHistory.loss.push(status.loss);
+                            trainingHistory.acc.push(status.acc);
+                            
+                            // Update charts in real-time
+                            drawLossCurve(trainingHistory);
+                            drawAccuracyCurve(trainingHistory);
+                        }
                     } else {
                         clearInterval(interval);
+                        stopGraphPolling();
                         trainBtn.disabled = false;
                         stopBtn.disabled = true;
 
@@ -624,13 +1101,17 @@
                             statusDiv.innerHTML = `错误: ${status.error}`;
                             statusDiv.className = 'status error';
                         } else {
+                            // Draw final charts
+                        drawLossCurve(trainingHistory);
+                        drawAccuracyCurve(trainingHistory);
+                            
                             statusDiv.innerHTML = `训练完成. 测试准确率: ${status.acc.toFixed(4)}`;
                             statusDiv.className = 'status completed';
                             progressBar.style.width = '100%';
                             progressBar.innerHTML = '100%';
                         }
                     }
-                }, 1000);
+                }, 500); // Update every 500ms for real-time chart updates
 
             } catch (error) {
                     trainBtn.disabled = false;

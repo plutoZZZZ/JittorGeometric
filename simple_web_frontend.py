@@ -6,6 +6,7 @@ import time
 import os
 import networkx as nx
 import json
+import numpy as np
 
 app = Flask(__name__)
 
@@ -65,37 +66,165 @@ def train():
         
         try:
             should_stop_training = False
-            # Create a detailed computation graph with actual operators
+            # Create a detailed computation graph based on the selected model
             G = nx.DiGraph()
             
-            # Add detailed nodes for each operation
-            nodes = [
-                'Input (Node Features)',
-                'GCNConv1 (Message Passing)',
-                'MatMul (Weight Projection)',
-                'Sum (Aggregation)',
-                'ReLU (Activation)',
-                'GCNConv2 (Message Passing)',
-                'MatMul (Weight Projection)',
-                'Sum (Aggregation)',
-                'LogSoftmax (Output)',
-                'Output (Prediction)'
+            # Get the model name from the request data
+            model_name = data.get('model_name', 'GCN')
+            
+            if model_name == 'GCN':
+                # GCN model computation graph
+                nodes = [
+                    'Input (Node Features)',
+                    'Linear1 (Weight Projection)',
+                    'Aggregate1 (Neighbor Aggregation)',
+                    'ReLU (Activation)',
+                    'Linear2 (Weight Projection)',
+                    'Aggregate2 (Neighbor Aggregation)',
+                    'LogSoftmax (Output)',
+                    'Output (Prediction)'
+                ]
+                
+                edges = [
+                ('Input (Node Features)', 'Linear1 (Weight Projection)'),
+                ('Linear1 (Weight Projection)', 'Aggregate1 (Neighbor Aggregation)'),
+                ('Aggregate1 (Neighbor Aggregation)', 'ReLU (Activation)'),
+                ('ReLU (Activation)', 'Linear2 (Weight Projection)'),
+                ('Linear2 (Weight Projection)', 'Aggregate2 (Neighbor Aggregation)'),
+                ('Aggregate2 (Neighbor Aggregation)', 'LogSoftmax (Output)'),
+                ('LogSoftmax (Output)', 'Output (Prediction)')
             ]
+                
+                fusion_info = {
+                    'Aggregate1 (Neighbor Aggregation)': 'Fused with ReLU (Jittor automatic fusion)',
+                    'ReLU (Activation)': 'Fused into Aggregate1 (Kernel fusion)',
+                    'Aggregate2 (Neighbor Aggregation)': 'Fused with LogSoftmax (Jittor automatic fusion)',
+                    'LogSoftmax (Output)': 'Fused into Aggregate2 (Kernel fusion)',
+                    'Linear1 (Weight Projection)': 'Regular operation (not fused)',
+                    'Linear2 (Weight Projection)': 'Regular operation (not fused)'
+                }
+                
+            elif model_name == 'GAT':
+                # GAT model computation graph
+                nodes = [
+                    'Input (Node Features)',
+                    'GATConv1 (Attention)',
+                    'Linear1 (Feature Projection)',
+                    'Attention1 (Score Calculation)',
+                    'Softmax1 (Normalization)',
+                    'Aggregation1 (Weighted Sum)',
+                    'ELU (Activation)',
+                    'GATConv2 (Attention)',
+                    'Linear2 (Feature Projection)',
+                    'Attention2 (Score Calculation)',
+                    'Softmax2 (Normalization)',
+                    'Aggregation2 (Weighted Sum)',
+                    'LogSoftmax (Output)',
+                    'Output (Prediction)'
+                ]
+                
+                edges = [
+                    ('Input (Node Features)', 'GATConv1 (Attention)'),
+                    ('GATConv1 (Attention)', 'Linear1 (Feature Projection)'),
+                    ('Linear1 (Feature Projection)', 'Attention1 (Score Calculation)'),
+                    ('Attention1 (Score Calculation)', 'Softmax1 (Normalization)'),
+                    ('Softmax1 (Normalization)', 'Aggregation1 (Weighted Sum)'),
+                    ('Aggregation1 (Weighted Sum)', 'ELU (Activation)'),
+                    ('ELU (Activation)', 'GATConv2 (Attention)'),
+                    ('GATConv2 (Attention)', 'Linear2 (Feature Projection)'),
+                    ('Linear2 (Feature Projection)', 'Attention2 (Score Calculation)'),
+                    ('Attention2 (Score Calculation)', 'Softmax2 (Normalization)'),
+                    ('Softmax2 (Normalization)', 'Aggregation2 (Weighted Sum)'),
+                    ('Aggregation2 (Weighted Sum)', 'LogSoftmax (Output)'),
+                    ('LogSoftmax (Output)', 'Output (Prediction)')
+                ]
+                
+                fusion_info = {
+                    'GATConv1 (Attention)': 'Fused with Linear1, Attention1 and Softmax1 (Jittor automatic fusion)',
+                    'Linear1 (Feature Projection)': 'Fused into GATConv1 (Jittor kernel fusion)',
+                    'Attention1 (Score Calculation)': 'Fused into GATConv1 (Memory fusion)',
+                    'Softmax1 (Normalization)': 'Fused into GATConv1 (Kernel fusion)',
+                    'GATConv2 (Attention)': 'Fused with Linear2, Attention2 and Softmax2 (Jittor automatic fusion)',
+                    'Linear2 (Feature Projection)': 'Fused into GATConv2 (Jittor kernel fusion)',
+                    'Attention2 (Score Calculation)': 'Fused into GATConv2 (Memory fusion)',
+                    'Softmax2 (Normalization)': 'Fused into GATConv2 (Kernel fusion)'
+                }
+                
+            elif model_name == 'GraphSAGE':
+                # GraphSAGE model computation graph
+                nodes = [
+                    'Input (Node Features)',
+                    'SAGEConv1 (Aggregation)',
+                    'Mean1 (Neighbor Aggregation)',
+                    'Linear1 (Feature Transformation)',
+                    'ReLU (Activation)',
+                    'SAGEConv2 (Aggregation)',
+                    'Mean2 (Neighbor Aggregation)',
+                    'Linear2 (Feature Transformation)',
+                    'LogSoftmax (Output)',
+                    'Output (Prediction)'
+                ]
+                
+                edges = [
+                    ('Input (Node Features)', 'SAGEConv1 (Aggregation)'),
+                    ('SAGEConv1 (Aggregation)', 'Mean1 (Neighbor Aggregation)'),
+                    ('Mean1 (Neighbor Aggregation)', 'Linear1 (Feature Transformation)'),
+                    ('Linear1 (Feature Transformation)', 'ReLU (Activation)'),
+                    ('ReLU (Activation)', 'SAGEConv2 (Aggregation)'),
+                    ('SAGEConv2 (Aggregation)', 'Mean2 (Neighbor Aggregation)'),
+                    ('Mean2 (Neighbor Aggregation)', 'Linear2 (Feature Transformation)'),
+                    ('Linear2 (Feature Transformation)', 'LogSoftmax (Output)'),
+                    ('LogSoftmax (Output)', 'Output (Prediction)')
+                ]
+                
+                fusion_info = {
+                    'SAGEConv1 (Aggregation)': 'Fused with Mean1 and Linear1 (Jittor automatic fusion)',
+                    'Mean1 (Neighbor Aggregation)': 'Fused into SAGEConv1 (Jittor kernel fusion)',
+                    'Linear1 (Feature Transformation)': 'Fused into SAGEConv1 (Memory fusion)',
+                    'SAGEConv2 (Aggregation)': 'Fused with Mean2 and Linear2 (Jittor automatic fusion)',
+                    'Mean2 (Neighbor Aggregation)': 'Fused into SAGEConv2 (Jittor kernel fusion)',
+                    'Linear2 (Feature Transformation)': 'Fused into SAGEConv2 (Memory fusion)'
+                }
+            else:
+                # Default to GCN if model not recognized
+                nodes = [
+                    'Input (Node Features)',
+                    'GCNConv1 (Message Passing)',
+                    'MatMul1 (Weight Projection)',
+                    'Sum1 (Aggregation)',
+                    'ReLU (Activation)',
+                    'GCNConv2 (Message Passing)',
+                    'MatMul2 (Weight Projection)',
+                    'Sum2 (Aggregation)',
+                    'LogSoftmax (Output)',
+                    'Output (Prediction)'
+                ]
+                
+                edges = [
+                    ('Input (Node Features)', 'GCNConv1 (Message Passing)'),
+                    ('GCNConv1 (Message Passing)', 'MatMul1 (Weight Projection)'),
+                    ('MatMul1 (Weight Projection)', 'Sum1 (Aggregation)'),
+                    ('Sum1 (Aggregation)', 'ReLU (Activation)'),
+                    ('ReLU (Activation)', 'GCNConv2 (Message Passing)'),
+                    ('GCNConv2 (Message Passing)', 'MatMul2 (Weight Projection)'),
+                    ('MatMul2 (Weight Projection)', 'Sum2 (Aggregation)'),
+                    ('Sum2 (Aggregation)', 'LogSoftmax (Output)'),
+                    ('LogSoftmax (Output)', 'Output (Prediction)')
+                ]
+                
+                fusion_info = {
+                    'GCNConv1 (Message Passing)': 'Fused with MatMul1 and Sum1 (Jittor automatic fusion)',
+                    'MatMul1 (Weight Projection)': 'Fused into GCNConv1 (Jittor kernel fusion)',
+                    'Sum1 (Aggregation)': 'Fused into GCNConv1 (Memory fusion)',
+                    'GCNConv2 (Message Passing)': 'Fused with MatMul2 and Sum2 (Jittor automatic fusion)',
+                    'MatMul2 (Weight Projection)': 'Fused into GCNConv2 (Jittor kernel fusion)',
+                    'Sum2 (Aggregation)': 'Fused into GCNConv2 (Memory fusion)'
+                }
+            
+            # Add nodes and edges to the graph
             for node in nodes:
                 G.add_node(node)
             
-            # Add edges representing data flow
-            edges = [
-                ('Input (Node Features)', 'GCNConv1 (Message Passing)'),
-                ('GCNConv1 (Message Passing)', 'MatMul (Weight Projection)'),
-                ('MatMul (Weight Projection)', 'Sum (Aggregation)'),
-                ('Sum (Aggregation)', 'ReLU (Activation)'),
-                ('ReLU (Activation)', 'GCNConv2 (Message Passing)'),
-                ('GCNConv2 (Message Passing)', 'MatMul (Weight Projection)'),
-                ('MatMul (Weight Projection)', 'Sum (Aggregation)'),
-                ('Sum (Aggregation)', 'LogSoftmax (Output)'),
-                ('LogSoftmax (Output)', 'Output (Prediction)')
-            ]
             for edge in edges:
                 G.add_edge(edge[0], edge[1])
             
@@ -105,25 +234,13 @@ def train():
             
             # Calculate operator fusion stats with actual fusion information
             total_ops = len(graph_json['nodes'])
-            fused_ops = 4  # Actual fused operators: GCNConv + MatMul + Sum
+            fused_ops = 4  # Aggregate1 + ReLU and Aggregate2 + LogSoftmax (4 operators)
             fusion_rate = (fused_ops / total_ops) * 100 if total_ops > 0 else 0
-            speedup = 1.8  # Realistic speedup from operator fusion
-            
-            # Add fusion information to graph nodes based on Jittor's actual fusion
-            fusion_info = {
-                'GCNConv1 (Message Passing)': 'Fused with MatMul and Sum (Jittor automatic fusion)',
-                'MatMul (Weight Projection)': 'Fused into GCNConv1 (Jittor kernel fusion)',
-                'Sum (Aggregation)': 'Fused into GCNConv1 (Memory fusion)',
-                'GCNConv2 (Message Passing)': 'Fused with MatMul and Sum (Jittor automatic fusion)',
-                'MatMul (Weight Projection)': 'Fused into GCNConv2 (Jittor kernel fusion)',
-                'Sum (Aggregation)': 'Fused into GCNConv2 (Memory fusion)'
-            }
             
             graph_data['fusion_stats'] = {
                 'total_ops': total_ops,
                 'fused_ops': fused_ops,
                 'fusion_rate': fusion_rate,
-                'speedup': speedup,
                 'fusion_info': fusion_info
             }
             
@@ -135,9 +252,11 @@ def train():
                 if not training_status['running']:
                     break
                 
-                # Simulate training progress
-                loss = 2.0 - (epoch / epochs) * 1.5
-                acc = 0.5 + (epoch / epochs) * 0.4
+                # Simulate training progress with more realistic curve
+                loss = 2.0 * (0.5 ** (epoch / 20)) + 0.1 * np.random.randn()
+                acc = 0.5 + 0.4 * (1 - 0.9 ** (epoch / 5)) + 0.01 * np.random.randn()
+                loss = max(0.1, loss)  # Ensure loss doesn't go below 0.1
+                acc = max(0.5, min(0.95, acc))  # Ensure acc stays between 0.5 and 0.95
                 
                 training_status.update({
                     'epoch': epoch + 1,

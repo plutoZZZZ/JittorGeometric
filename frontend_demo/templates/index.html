@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>JittorGeometric 图神经网络训练平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header img { height: 48px; }
+        .header h1 { font-size: 20px; font-weight: 500; }
+        .header .subtitle { font-size: 13px; opacity: 0.8; }
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 0;
+            height: calc(100vh - 80px);
+        }
+        .sidebar {
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .sidebar h2 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #666;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #1a237e;
+        }
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 4px;
+        }
+        .form-group select, .form-group input[type="number"] {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            font-size: 13px;
+            background: #fafafa;
+            transition: border-color 0.2s;
+        }
+        .form-group select:focus, .form-group input[type="number"]:focus {
+            outline: none;
+            border-color: #1a237e;
+            background: white;
+        }
+        .btn-train {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #1a237e, #283593);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn-train:hover { opacity: 0.9; }
+        .btn-train:disabled {
+            background: #bbb;
+            cursor: not-allowed;
+        }
+        .progress-container {
+            margin-top: 12px;
+        }
+        .progress-bar-bg {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1a237e, #3f51b5);
+            border-radius: 3px;
+            transition: width 0.3s;
+            width: 0%;
+        }
+        .status-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 6px;
+        }
+        .status-text.running { color: #1565c0; }
+        .status-text.completed { color: #2e7d32; }
+        .status-text.error { color: #c62828; }
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .tab-bar {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .tab-btn {
+            padding: 12px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { color: #1a237e; }
+        .tab-btn.active {
+            color: #1a237e;
+            border-bottom-color: #1a237e;
+        }
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: none;
+        }
+        .tab-content.active { display: block; }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .chart-card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .chart-card h3 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        .graph-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .graph-container h3 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 16px;
+        }
+        .graph-svg {
+            width: 100%;
+            height: calc(100vh - 240px);
+            min-height: 200px;
+        }
+        .fusion-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .fusion-container h3 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 16px;
+        }
+        .fusion-group {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .fusion-group-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .fusion-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .fusion-badge.meta_fusion { background: #e3f2fd; color: #1565c0; }
+        .fusion-badge.cross_boundary { background: #fce4ec; color: #c62828; }
+        .fusion-ops {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .fusion-op {
+            padding: 4px 10px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        .fusion-arrow {
+            color: #999;
+            font-size: 14px;
+        }
+        .fusion-desc {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.6;
+        }
+        .meta-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .meta-card {
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 12px;
+        }
+        .meta-card .label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .meta-card .value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-top: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        .graph-node rect {
+            rx: 6;
+            ry: 6;
+            stroke-width: 1.5;
+        }
+        .graph-node text {
+            font-size: 11px;
+            font-family: -apple-system, 'Microsoft YaHei', sans-serif;
+        }
+        .graph-edge {
+            fill: none;
+            stroke: #999;
+            stroke-width: 1.5;
+            marker-end: url(#arrowhead);
+        }
+        .legend-bar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #555;
+        }
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="/assets/JittorGeometric_logo.png" alt="Logo">
+        <div>
+            <h1>JittorGeometric</h1>
+            <div class="subtitle">图神经网络训练与分析平台</div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <h2>模型配置</h2>
+            <div class="form-group">
+                <label>模型</label>
+                <select id="model_name" onchange="onModelChange()">
+                    <option value="GCN">GCN</option>
+                    <option value="GAT">GAT</option>
+                    <option value="GraphSAGE">GraphSAGE</option>
+                    <option value="ChebNet2">ChebNet2</option>
+                    <option value="SGC">SGC</option>
+                    <option value="APPNP">APPNP</option>
+                    <option value="GPRGNN">GPRGNN</option>
+                    <option value="BernNet">BernNet</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>数据集</label>
+                <select id="dataset_name">
+                </select>
+            </div>
+            <div class="form-group">
+                <label>训练轮数</label>
+                <input type="number" id="epochs" value="200" min="1" max="1000">
+            </div>
+            <div id="dynamic_params"></div>
+            <button class="btn-train" id="train_btn" onclick="startTraining()">开始训练</button>
+            <div class="progress-container">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progress_bar"></div>
+                </div>
+                <div class="status-text" id="status_text">就绪</div>
+            </div>
+
+            <h2 style="margin-top: 24px;">运行信息</h2>
+            <div id="runtime_info" style="font-size: 12px; color: #666; line-height: 1.8;">
+                <div>当前轮次: <span id="info_epoch">-</span></div>
+                <div>训练损失: <span id="info_loss">-</span></div>
+                <div>测试精度: <span id="info_acc">-</span></div>
+                <div>最佳精度: <span id="info_best">-</span></div>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="switchTab('training', this)">训练监控</button>
+                <button class="tab-btn" onclick="switchTab('graph', this)">计算图</button>
+                <button class="tab-btn" onclick="switchTab('fusion', this)">算子融合</button>
+            </div>
+
+            <div class="tab-content active" id="tab-training">
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>训练损失</h3>
+                        <canvas id="lossChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>测试精度</h3>
+                        <canvas id="accChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-graph">
+                <div class="graph-container">
+                    <h3>模型计算图 <span style="font-weight: normal; color: #999; font-size: 12px;">（Jittor统一计算图执行）</span></h3>
+                    <div class="legend-bar">
+                        <div class="legend-item"><div class="legend-color" style="background:#e8eaf6;"></div>输入/输出</div>
+                        <div class="legend-item"><div class="legend-color" style="background:#f3e5f5;"></div>元算子 (nn.*)</div>
+                        <div class="legend-item"><div class="legend-color" style="background:#e3f2fd;"></div>自定义算子</div>
+                    </div>
+                    <svg class="graph-svg" id="compGraphSvg">
+                        <defs>
+                            <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                                <polygon points="0 0, 8 3, 0 6" fill="#999"/>
+                            </marker>
+                        </defs>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-fusion">
+                <div class="fusion-container">
+                    <h3>算子融合分析 <span style="font-weight: normal; color: #999; font-size: 12px;">（Jittor JIT编译器优化）</span></h3>
+                    <div id="fusionContent">
+                        <p style="color: #999; font-size: 13px;">请选择模型并开始训练以查看算子融合分析。</p>
+                    </div>
+                    <div class="meta-info" id="metaInfo" style="display: none;">
+                        <div class="meta-card">
+                            <div class="label">融合组数</div>
+                            <div class="value" id="meta_fusion_count">-</div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="label">跨边界融合数</div>
+                            <div class="value" id="meta_cross_count">-</div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="label">元算子数</div>
+                            <div class="value" id="meta_meta_ops">-</div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="label">自定义算子数</div>
+                            <div class="value" id="meta_custom_ops">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentGraphInfo = null;
+        let bestAcc = 0;
+
+        async function onModelChange() {
+            const model = document.getElementById('model_name').value;
+            await updateDatasets(model);
+            await updateParams(model);
+            await loadGraphInfo(model);
+        }
+
+        async function updateDatasets(model) {
+            try {
+                const resp = await fetch('/api/datasets/' + model);
+                const datasets = await resp.json();
+                const sel = document.getElementById('dataset_name');
+                sel.innerHTML = datasets.map(ds => `<option value="${ds}">${ds}</option>`).join('');
+            } catch (e) {
+                console.error('Failed to load datasets:', e);
+            }
+        }
+
+        async function updateParams(model) {
+            try {
+                const resp = await fetch('/api/params/' + model);
+                const params = await resp.json();
+                const container = document.getElementById('dynamic_params');
+                container.innerHTML = '';
+                params.forEach(p => {
+                    const div = document.createElement('div');
+                    div.className = 'form-group';
+                    const stepAttr = p.step ? ` step="${p.step}"` : '';
+                    div.innerHTML = `<label>${p.label}</label><input type="number" id="param_${p.key}" value="${p.default}"${stepAttr}>`;
+                    container.appendChild(div);
+                });
+            } catch (e) {
+                console.error('Failed to load params:', e);
+            }
+        }
+
+        function switchTab(tabName, btn) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        const lossCtx = document.getElementById('lossChart').getContext('2d');
+        const accCtx = document.getElementById('accChart').getContext('2d');
+
+        const lossChart = new Chart(lossCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '损失',
+                    data: [],
+                    borderColor: '#e53935',
+                    backgroundColor: 'rgba(229,57,53,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: false,
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: '损失值' } },
+                    x: { title: { display: true, text: '轮次' } }
+                },
+                plugins: { legend: { labels: { font: { size: 12 } } } }
+            }
+        });
+
+        const accChart = new Chart(accCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '精度',
+                    data: [],
+                    borderColor: '#1a237e',
+                    backgroundColor: 'rgba(26,35,126,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: false,
+                scales: {
+                    y: { beginAtZero: true, max: 1, title: { display: true, text: '精度' } },
+                    x: { title: { display: true, text: '轮次' } }
+                },
+                plugins: { legend: { labels: { font: { size: 12 } } } }
+            }
+        });
+
+        function updateChartsFromStatus(status) {
+            if (status.history && status.history.loss && status.history.acc) {
+                lossChart.data.labels = status.history.loss.map((_, i) => i + 1);
+                lossChart.data.datasets[0].data = [...status.history.loss];
+                accChart.data.labels = status.history.acc.map((_, i) => i + 1);
+                accChart.data.datasets[0].data = [...status.history.acc];
+                lossChart.update('none');
+                accChart.update('none');
+            }
+        }
+
+        async function loadGraphInfo(modelName) {
+            try {
+                const resp = await fetch('/api/graph-info/' + modelName);
+                const info = await resp.json();
+                if (info.error) return;
+                currentGraphInfo = info;
+                renderComputationGraph(info);
+                renderFusionInfo(info);
+            } catch (e) {
+                console.error('Failed to load graph info:', e);
+            }
+        }
+
+        function layoutDAG(nodes, edges) {
+            const nodeMap = {};
+            nodes.forEach(n => { nodeMap[n.id] = n; });
+
+            const inDeg = {};
+            const children = {};
+            const parents = {};
+            nodes.forEach(n => { inDeg[n.id] = 0; children[n.id] = []; parents[n.id] = []; });
+            edges.forEach(e => {
+                inDeg[e[1]] = (inDeg[e[1]] || 0) + 1;
+                children[e[0]].push(e[1]);
+                parents[e[1]].push(e[0]);
+            });
+
+            const layers = [];
+            const assigned = new Set();
+            const queue = [];
+            nodes.forEach(n => { if (inDeg[n.id] === 0) queue.push(n.id); });
+
+            while (queue.length > 0) {
+                const layer = [];
+                const nextQueue = [];
+                const sorted = queue.sort((a, b) => {
+                    const ca = nodeMap[a].category || '';
+                    const cb = nodeMap[b].category || '';
+                    if (ca === 'io' && cb !== 'io') return -1;
+                    if (cb === 'io' && ca !== 'io') return 1;
+                    return 0;
+                });
+                sorted.forEach(id => {
+                    layer.push(id);
+                    assigned.add(id);
+                    children[id].forEach(child => {
+                        inDeg[child]--;
+                        if (inDeg[child] === 0 && !assigned.has(child)) {
+                            nextQueue.push(child);
+                        }
+                    });
+                });
+                layers.push(layer);
+                queue.length = 0;
+                nextQueue.forEach(id => queue.push(id));
+            }
+
+            nodes.forEach(n => {
+                if (!assigned.has(n.id)) {
+                    if (layers.length === 0) layers.push([]);
+                    layers[layers.length - 1].push(n.id);
+                }
+            });
+
+            return layers;
+        }
+
+        function renderComputationGraph(info) {
+            const svg = document.getElementById('compGraphSvg');
+            svg.innerHTML = '<defs><marker id="arrowhead" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto"><polygon points="0 0, 6 2, 0 4" fill="#999"/></marker></defs>';
+
+            const nodes = info.nodes || [];
+            const edges = info.edges || [];
+            if (nodes.length === 0) return;
+
+            const nodeMap = {};
+            nodes.forEach(n => { nodeMap[n.id] = n; });
+
+            const layers = layoutDAG(nodes, edges);
+
+            const nodeW = 150;
+            const nodeH = 36;
+            const gapX = 30;
+            const gapY = 28;
+            const padTop = 16;
+            const padBottom = 16;
+            const svgW = Math.max(600, Math.max(...layers.map(l => l.length)) * (nodeW + gapX));
+            const svgH = Math.max(200, layers.length * (nodeH + gapY) - gapY + padTop + padBottom);
+            svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+            svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+            const categoryColors = {
+                'io': { fill: '#e8eaf6', stroke: '#3f51b5' },
+                'meta': { fill: '#f3e5f5', stroke: '#7b1fa2' },
+                'custom': { fill: '#e3f2fd', stroke: '#1565c0' },
+            };
+
+            const posMap = {};
+
+            layers.forEach((layer, li) => {
+                const totalW = layer.length * nodeW + (layer.length - 1) * gapX;
+                const startX = (svgW - totalW) / 2;
+                layer.forEach((id, ni) => {
+                    posMap[id] = {
+                        x: startX + ni * (nodeW + gapX),
+                        y: padTop + li * (nodeH + gapY)
+                    };
+                });
+            });
+
+            edges.forEach(e => {
+                const from = posMap[e[0]];
+                const to = posMap[e[1]];
+                if (!from || !to) return;
+
+                const x1 = from.x + nodeW / 2;
+                const y1 = from.y + nodeH;
+                const x2 = to.x + nodeW / 2;
+                const y2 = to.y;
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                line.classList.add('graph-edge');
+                svg.appendChild(line);
+            });
+
+            nodes.forEach(n => {
+                const pos = posMap[n.id];
+                if (!pos) return;
+                const colors = categoryColors[n.category] || { fill: '#f5f5f5', stroke: '#999' };
+
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.classList.add('graph-node');
+
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', pos.x);
+                rect.setAttribute('y', pos.y);
+                rect.setAttribute('width', nodeW);
+                rect.setAttribute('height', nodeH);
+                rect.setAttribute('fill', colors.fill);
+                rect.setAttribute('stroke', colors.stroke);
+                g.appendChild(rect);
+
+                const labelLines = (n.label || '').split('\n');
+                if (labelLines.length === 1) {
+                    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    t.setAttribute('x', pos.x + nodeW / 2);
+                    t.setAttribute('y', pos.y + nodeH / 2 + 4);
+                    t.setAttribute('text-anchor', 'middle');
+                    t.setAttribute('font-weight', '600');
+                    t.setAttribute('font-size', '8');
+                    t.setAttribute('fill', '#333');
+                    t.textContent = labelLines[0];
+                    g.appendChild(t);
+                } else {
+                    labelLines.forEach((text, ti) => {
+                        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                        t.setAttribute('x', pos.x + nodeW / 2);
+                        t.setAttribute('y', pos.y + 13 + ti * 11);
+                        t.setAttribute('text-anchor', 'middle');
+                        t.setAttribute('font-weight', ti === 0 ? '600' : '400');
+                        t.setAttribute('font-size', ti === 0 ? '8' : '7');
+                        t.setAttribute('fill', ti === 0 ? '#333' : '#888');
+                        t.textContent = text;
+                        g.appendChild(t);
+                    });
+                }
+
+                svg.appendChild(g);
+            });
+        }
+
+        function renderFusionInfo(info) {
+            const container = document.getElementById('fusionContent');
+            const metaInfo = document.getElementById('metaInfo');
+
+            if (!info.fusion_groups || info.fusion_groups.length === 0) {
+                container.innerHTML = '<p style="color: #999;">暂无算子融合信息。</p>';
+                metaInfo.style.display = 'none';
+                return;
+            }
+
+            let html = '';
+            info.fusion_groups.forEach((group, idx) => {
+                const badgeClass = group.type || 'meta_fusion';
+                const typeName = group.type === 'cross_boundary' ? '跨边界融合' : '元算子融合';
+                const opsHtml = group.ops.map((op, i) => {
+                    const sep = i < group.ops.length - 1 ? '<span class="fusion-arrow">+</span>' : '';
+                    return `<span class="fusion-op">${op}</span>${sep}`;
+                }).join('');
+
+                html += `
+                    <div class="fusion-group" style="padding:10px 14px;">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="fusion-badge ${badgeClass}">${typeName}</span>
+                            <div class="fusion-ops" style="margin:0;">${opsHtml}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+
+            const nodes = info.nodes || [];
+            const metaOps = nodes.filter(n => n.category === 'meta').length;
+            const customOps = nodes.filter(n => n.category === 'custom').length;
+            const crossCount = info.fusion_groups.filter(g => g.type === 'cross_boundary').length;
+
+            document.getElementById('meta_fusion_count').textContent = info.fusion_groups.length;
+            document.getElementById('meta_cross_count').textContent = crossCount;
+            document.getElementById('meta_meta_ops').textContent = metaOps;
+            document.getElementById('meta_custom_ops').textContent = customOps;
+            metaInfo.style.display = 'grid';
+        }
+
+        async function startTraining() {
+            const btn = document.getElementById('train_btn');
+            btn.disabled = true;
+            bestAcc = 0;
+
+            lossChart.data.labels = [];
+            lossChart.data.datasets[0].data = [];
+            accChart.data.labels = [];
+            accChart.data.datasets[0].data = [];
+            lossChart.update();
+            accChart.update();
+
+            const params = {};
+            const dynamicParamsDiv = document.getElementById('dynamic_params');
+            dynamicParamsDiv.querySelectorAll('input').forEach(inp => {
+                const key = inp.id.replace('param_', '');
+                const val = parseFloat(inp.value);
+                params[key] = isNaN(val) ? inp.value : val;
+            });
+
+            const data = {
+                model_name: document.getElementById('model_name').value,
+                dataset_name: document.getElementById('dataset_name').value,
+                epochs: parseInt(document.getElementById('epochs').value),
+                params: params
+            };
+
+            try {
+                const response = await fetch('/api/train', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) throw new Error('训练启动失败');
+
+                let checkCount = 0;
+                const maxChecksAfterFinish = 5;
+                const interval = setInterval(async () => {
+                    const statusResp = await fetch('/api/status?' + new Date().getTime(), { cache: 'no-store' });
+                    const status = await statusResp.json();
+
+                    updateChartsFromStatus(status);
+
+                    const statusText = document.getElementById('status_text');
+                    const progressBar = document.getElementById('progress_bar');
+
+                    if (status.running) {
+                        const progress = (status.epoch / status.total_epochs) * 100;
+                        progressBar.style.width = progress + '%';
+                        statusText.textContent = `轮次 ${status.epoch}/${status.total_epochs} | 损失: ${status.loss.toFixed(4)} | 精度: ${status.acc.toFixed(4)}`;
+                        statusText.className = 'status-text running';
+
+                        document.getElementById('info_epoch').textContent = `${status.epoch}/${status.total_epochs}`;
+                        document.getElementById('info_loss').textContent = status.loss.toFixed(4);
+                        document.getElementById('info_acc').textContent = status.acc.toFixed(4);
+                        if (status.acc > bestAcc) bestAcc = status.acc;
+                        document.getElementById('info_best').textContent = bestAcc.toFixed(4);
+
+                        checkCount = 0;
+                    } else {
+                        checkCount++;
+                        if (checkCount > maxChecksAfterFinish) {
+                            clearInterval(interval);
+                            btn.disabled = false;
+                            progressBar.style.width = '100%';
+
+                            if (status.error) {
+                                statusText.textContent = '错误: ' + status.error;
+                                statusText.className = 'status-text error';
+                            } else {
+                                statusText.textContent = `训练完成 | 最佳精度: ${bestAcc.toFixed(4)}`;
+                                statusText.className = 'status-text completed';
+                            }
+                        }
+                    }
+                }, 1000);
+
+            } catch (error) {
+                btn.disabled = false;
+                document.getElementById('status_text').textContent = '错误: ' + error.message;
+                document.getElementById('status_text').className = 'status-text error';
+            }
+        }
+
+        window.onload = function() {
+            onModelChange();
+
+            fetch('/api/status?' + new Date().getTime(), { cache: 'no-store' })
+                .then(r => r.json())
+                .then(status => {
+                    if (status.history && (status.history.loss.length > 0 || status.history.acc.length > 0)) {
+                        updateChartsFromStatus(status);
+                        if (status.running) {
+                            document.getElementById('status_text').textContent = `运行中... 轮次 ${status.epoch}/${status.total_epochs}`;
+                            document.getElementById('status_text').className = 'status-text running';
+                        } else if (status.finished) {
+                            document.getElementById('status_text').textContent = `训练完成 | 最佳精度: ${status.acc.toFixed(4)}`;
+                            document.getElementById('status_text').className = 'status-text completed';
+                            document.getElementById('progress_bar').style.width = '100%';
+                        }
+                    }
+                })
+                .catch(() => {});
+        };
+    </script>
+</body>
+</html>

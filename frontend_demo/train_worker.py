@@ -17,6 +17,7 @@ def main():
     parser.add_argument('--weight_decay', type=float, default=5e-4)
     parser.add_argument('--K', type=int, default=3)
     parser.add_argument('--alpha', type=float, default=0.1)
+    parser.add_argument('--lambda', type=float, default=0.5)
     args = parser.parse_args()
 
     frontend_dir = os.path.dirname(os.path.abspath(__file__))
@@ -54,7 +55,7 @@ def main():
     status = init_status()
 
     try:
-        supported_models = ['GCN', 'GAT', 'GraphSAGE', 'ChebNet2', 'SGC', 'APPNP', 'GPRGNN', 'BernNet']
+        supported_models = ['GCN', 'GAT', 'GraphSAGE', 'ChebNet2', 'SGC', 'APPNP', 'GPRGNN', 'BernNet', 'GCN2', 'EvenNet', 'ChebConv', 'OptBasisGNN']
         if args.model not in supported_models:
             raise ValueError(f"Model {args.model} not supported. Supported models: {supported_models}")
 
@@ -62,8 +63,8 @@ def main():
         from jittor import nn
         from math import log
         sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        from jittor_geometric.datasets import Planetoid, Reddit
-        from jittor_geometric.nn import GCNConv, GATConv, SAGEConv, ChebNetII, SGConv, APPNP, GPRGNN, BernNet
+        from jittor_geometric.datasets import Planetoid, Reddit, Amazon, WikipediaNetwork
+        from jittor_geometric.nn import GCNConv, GATConv, SAGEConv, ChebNetII, SGConv, APPNP, GPRGNN, BernNet, GCN2Conv, EvenNet, ChebConv, OptBasisConv
         from jittor_geometric.ops import cootocsr, cootocsc
         from jittor_geometric.nn.conv.gcn_conv import gcn_norm
         from jittor_geometric.nn.conv.sage_conv import sage_norm
@@ -81,10 +82,14 @@ def main():
 
         if dataset_name_lower in ['cora', 'citeseer', 'pubmed']:
             dataset = Planetoid(root=data_root, name=args.dataset, transform=T.NormalizeFeatures())
+        elif dataset_name_lower in ['computers', 'photo']:
+            dataset = Amazon(root=data_root, name=args.dataset, transform=T.NormalizeFeatures())
+        elif dataset_name_lower in ['chameleon', 'squirrel']:
+            dataset = WikipediaNetwork(root=data_root, name=args.dataset, geom_gcn_preprocess=False)
         elif dataset_name_lower == 'reddit':
             dataset = Reddit(root=os.path.join(data_root, 'Reddit'))
         else:
-            raise ValueError(f"Dataset {args.dataset} not supported. Supported datasets: Cora, Citeseer, Pubmed, Reddit")
+            raise ValueError(f"Dataset {args.dataset} not supported.")
 
         data = dataset[0]
 
@@ -486,6 +491,218 @@ def main():
                     accs.append(acc)
                 return accs
 
+        elif args.model == 'GCN2':
+            num_layers_val = args.num_layers
+            alpha_val = args.alpha
+            lambda_val = float(getattr(args, 'lambda'))
+
+            class Net(nn.Module):
+                def __init__(self, dataset):
+                    super(Net, self).__init__()
+                    self.lins = nn.ModuleList()
+                    self.lins.append(nn.Linear(dataset.num_features, hidden))
+                    self.lins.append(nn.Linear(hidden, dataset.num_classes))
+                    self.convs = nn.ModuleList()
+                    for layer in range(num_layers_val):
+                        self.convs.append(GCN2Conv(hidden, hidden))
+                    self.dropout = dropout
+                    self.alpha = alpha_val
+                    self.lamda = lambda_val
+
+                def execute(self):
+                    x, csc, csr = data.x, data.csc, data.csr
+                    x = nn.relu(self.lins[0](x))
+                    x0 = x
+                    for i, conv in enumerate(self.convs):
+                        x = nn.dropout(x, self.dropout, is_train=self.training)
+                        beta = log(self.lamda / (i + 1) + 1)
+                        x = conv(x, x0, csc, csr, self.alpha, beta)
+                        x = nn.relu(x)
+                    x = nn.dropout(x, self.dropout, is_train=self.training)
+                    x = self.lins[1](x)
+                    return nn.log_softmax(x, dim=-1)
+
+            model = Net(dataset)
+            optimizer = nn.Adam([
+                dict(params=model.convs.parameters(), weight_decay=0.01),
+                dict(params=model.lins.parameters(), weight_decay=weight_decay)
+            ], lr=lr)
+
+            def train():
+                model.train()
+                train_mask = data.train_mask
+                if len(train_mask.shape) > 1:
+                    train_mask = train_mask[0]
+                pred = model()[train_mask]
+                label = data.y[train_mask]
+                loss = nn.nll_loss(pred, label)
+                optimizer.step(loss)
+                return loss
+
+            def test():
+                model.eval()
+                logits = model()
+                accs = []
+                masks = [data.train_mask, data.val_mask, data.test_mask]
+                for mask in masks:
+                    current_mask = mask[0] if len(mask.shape) > 1 else mask
+                    y_true = data.y[current_mask]
+                    logits_masked = logits[current_mask]
+                    pred, _ = jt.argmax(logits_masked, dim=1)
+                    acc = pred.equal(y_true).sum().item() / current_mask.sum().item()
+                    accs.append(acc)
+                return accs
+
+        elif args.model == 'EvenNet':
+            K_val = args.K
+            alpha_val = args.alpha
+
+            class Net(nn.Module):
+                def __init__(self, dataset):
+                    super(Net, self).__init__()
+                    self.lin1 = nn.Linear(dataset.num_features, hidden)
+                    self.lin2 = nn.Linear(hidden, dataset.num_classes)
+                    self.prop = EvenNet(K=K_val, alpha=alpha_val)
+                    self.dropout = dropout
+
+                def execute(self):
+                    x, csc, csr = data.x, data.csc, data.csr
+                    x = nn.dropout(x, self.dropout, is_train=self.training)
+                    x = nn.relu(self.lin1(x))
+                    x = nn.dropout(x, self.dropout, is_train=self.training)
+                    x = self.lin2(x)
+                    x = self.prop(x, csc, csr)
+                    return nn.log_softmax(x, dim=1)
+
+            model = Net(dataset)
+            optimizer = nn.Adam(params=model.parameters(), lr=lr, weight_decay=weight_decay)
+
+            def train():
+                model.train()
+                train_mask = data.train_mask
+                if len(train_mask.shape) > 1:
+                    train_mask = train_mask[0]
+                pred = model()[train_mask]
+                label = data.y[train_mask]
+                loss = nn.nll_loss(pred, label)
+                optimizer.step(loss)
+                return loss
+
+            def test():
+                model.eval()
+                logits = model()
+                accs = []
+                masks = [data.train_mask, data.val_mask, data.test_mask]
+                for mask in masks:
+                    current_mask = mask[0] if len(mask.shape) > 1 else mask
+                    y_true = data.y[current_mask]
+                    logits_masked = logits[current_mask]
+                    pred, _ = jt.argmax(logits_masked, dim=1)
+                    acc = pred.equal(y_true).sum().item() / current_mask.sum().item()
+                    accs.append(acc)
+                return accs
+
+        elif args.model == 'ChebConv':
+            K_val = args.K
+
+            class Net(nn.Module):
+                def __init__(self):
+                    super(Net, self).__init__()
+                    self.conv1 = ChebConv(data.num_features, hidden, K=K_val)
+                    self.conv2 = ChebConv(hidden, dataset.num_classes, K=K_val)
+
+                def execute(self):
+                    x, edge_index, edge_weight = data.x, data.edge_index, data.edge_weight
+                    x = nn.relu(self.conv1(x, edge_index, edge_weight))
+                    x = nn.dropout(x, self.dropout, is_train=self.training)
+                    x = self.conv2(x, edge_index, edge_weight)
+                    return nn.log_softmax(x, dim=1)
+
+            model = Net()
+            optimizer = nn.Adam([
+                dict(params=model.conv1.parameters(), weight_decay=0),
+                dict(params=model.conv2.parameters(), weight_decay=0)
+            ], lr=lr)
+
+            def train():
+                model.train()
+                train_mask = data.train_mask
+                if len(train_mask.shape) > 1:
+                    train_mask = train_mask[0]
+                pred = model()[train_mask]
+                label = data.y[train_mask]
+                loss = nn.nll_loss(pred, label)
+                optimizer.step(loss)
+                return loss
+
+            def test():
+                model.eval()
+                logits = model()
+                accs = []
+                masks = [data.train_mask, data.val_mask, data.test_mask]
+                for mask in masks:
+                    current_mask = mask[0] if len(mask.shape) > 1 else mask
+                    y_true = data.y[current_mask]
+                    logits_masked = logits[current_mask]
+                    pred, _ = jt.argmax(logits_masked, dim=1)
+                    acc = pred.equal(y_true).sum().item() / current_mask.sum().item()
+                    accs.append(acc)
+                return accs
+
+        elif args.model == 'OptBasisGNN':
+            K_val = args.K
+
+            class Net(nn.Module):
+                def __init__(self, dataset):
+                    super(Net, self).__init__()
+                    self.lin1 = nn.Linear(dataset.num_features, hidden)
+                    self.lin2 = nn.Linear(hidden, dataset.num_classes)
+                    self.prop = OptBasisConv(K_val, hidden)
+                    self.dropout = dropout
+
+                def execute(self):
+                    x, csc, csr = data.x, data.csc, data.csr
+                    x = nn.dropout(x, self.dropout, is_train=self.training)
+                    x = self.lin1(x)
+                    x = nn.relu(x)
+                    x = nn.dropout(x, self.dropout, is_train=self.training)
+                    x = self.prop(x, csr)
+                    x = nn.dropout(x, self.dropout)
+                    x = self.lin2(x)
+                    return nn.log_softmax(x, dim=1)
+
+            model = Net(dataset)
+            optimizer = nn.Adam([
+                dict(params=model.lin1.parameters(), lr=lr, weight_decay=1e-2),
+                dict(params=model.lin2.parameters(), lr=lr, weight_decay=weight_decay),
+                dict(params=model.prop.parameters(), lr=lr, weight_decay=0)
+            ], lr=lr)
+
+            def train():
+                model.train()
+                train_mask = data.train_mask
+                if len(train_mask.shape) > 1:
+                    train_mask = train_mask[0]
+                pred = model()[train_mask]
+                label = data.y[train_mask]
+                loss = nn.nll_loss(pred, label)
+                optimizer.step(loss)
+                return loss
+
+            def test():
+                model.eval()
+                logits = model()
+                accs = []
+                masks = [data.train_mask, data.val_mask, data.test_mask]
+                for mask in masks:
+                    current_mask = mask[0] if len(mask.shape) > 1 else mask
+                    y_true = data.y[current_mask]
+                    logits_masked = logits[current_mask]
+                    pred, _ = jt.argmax(logits_masked, dim=1)
+                    acc = pred.equal(y_true).sum().item() / current_mask.sum().item()
+                    accs.append(acc)
+                return accs
+
         else:
             raise ValueError(f"Model {args.model} not supported")
 
@@ -519,8 +736,8 @@ def main():
 
             update_status(status)
 
-            log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}, Loss: {:.4f}'
-            print(log.format(epoch, train_acc, best_val_acc, test_acc, status['loss']))
+            log_fmt = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}, Loss: {:.4f}'
+            print(log_fmt.format(epoch, train_acc, best_val_acc, test_acc, status['loss']))
 
             jt.sync_all()
             jt.gc()

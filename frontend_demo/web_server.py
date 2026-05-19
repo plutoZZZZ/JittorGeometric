@@ -573,6 +573,230 @@ MODEL_GRAPH_INFO = {
     },
 }
 
+MODEL_ARCH_INFO = {
+    'GCN': {
+        'name': 'GCN (Graph Convolutional Network)',
+        'description': '通过谱图卷积的一阶近似实现高效的图神经网络，适用于半监督节点分类',
+        'layers': [
+            {'name': 'GCNConv1', 'type': 'GCNConv', 'input_dim': 'F', 'output_dim': 'H', 'params_formula': 'F×H + H'},
+            {'name': 'ReLU', 'type': 'Activation', 'input_dim': 'H', 'output_dim': 'H', 'params_formula': '0'},
+            {'name': 'Dropout', 'type': 'Regularization', 'input_dim': 'H', 'output_dim': 'H', 'params_formula': '0'},
+            {'name': 'GCNConv2', 'type': 'GCNConv', 'input_dim': 'H', 'output_dim': 'C', 'params_formula': 'H×C + C'},
+        ],
+        'total_params_formula': 'F×H + H + H×C + C',
+        'key_idea': '谱图卷积的一阶切比雪夫近似，将图卷积简化为 D^(-1/2) A D^(-1/2) X W',
+    },
+    'GAT': {
+        'name': 'GAT (Graph Attention Network)',
+        'description': '利用注意力机制自适应学习邻居权重，无需预设图结构',
+        'layers': [
+            {'name': 'GATConv1', 'type': 'GATConv', 'input_dim': 'F', 'output_dim': 'H', 'params_formula': 'F×H + H + 2×H'},
+            {'name': 'Dropout', 'type': 'Regularization', 'input_dim': 'H', 'output_dim': 'H', 'params_formula': '0'},
+            {'name': 'GATConv2', 'type': 'GATConv', 'input_dim': 'H', 'output_dim': 'C', 'params_formula': 'H×C + C + 2×C'},
+        ],
+        'total_params_formula': 'F×H + H + 2×H + H×C + C + 2×C',
+        'key_idea': '通过自注意力机制计算邻居权重 a^T[Wh_i || Wh_j]，实现自适应聚合',
+    },
+    'GraphSAGE': {
+        'name': 'GraphSAGE (Sample and Aggregate)',
+        'description': '通过采样和聚合邻居特征实现归纳式学习，适用于大规模图',
+        'layers': [
+            {'name': 'SAGEConv1', 'type': 'SAGEConv', 'input_dim': 'F', 'output_dim': 'H', 'params_formula': 'F×H + H'},
+            {'name': 'ReLU', 'type': 'Activation', 'input_dim': 'H', 'output_dim': 'H', 'params_formula': '0'},
+            {'name': 'Dropout', 'type': 'Regularization', 'input_dim': 'H', 'output_dim': 'H', 'params_formula': '0'},
+            {'name': 'SAGEConv2', 'type': 'SAGEConv', 'input_dim': 'H', 'output_dim': 'C', 'params_formula': 'H×C + C'},
+        ],
+        'total_params_formula': 'F×H + H + H×C + C',
+        'key_idea': '采样邻居 + 聚合特征（Mean/LSTM/Pool），支持归纳式学习',
+    },
+    'ChebNet2': {
+        'name': 'ChebNetII (Chebyshev Network II)',
+        'description': '基于切比雪夫多项式的图卷积，利用优化基实现更好的频域滤波',
+        'layers': [
+            {'name': 'Linear1', 'type': 'nn.Linear', 'input_dim': 'F', 'output_dim': 'H', 'params_formula': 'F×H + H'},
+            {'name': 'ReLU', 'type': 'Activation', 'input_dim': 'H', 'output_dim': 'H', 'params_formula': '0'},
+            {'name': 'Linear2', 'type': 'nn.Linear', 'input_dim': 'H', 'output_dim': 'C', 'params_formula': 'H×C + C'},
+            {'name': 'ChebNetII Prop', 'type': 'ChebNetII(K)', 'input_dim': 'C', 'output_dim': 'C', 'params_formula': 'K+1'},
+        ],
+        'total_params_formula': 'F×H + H + H×C + C + K+1',
+        'key_idea': '切比雪夫多项式近似图滤波器，优化可学习系数实现自适应频域滤波',
+    },
+    'SGC': {
+        'name': 'SGC (Simplified Graph Convolution)',
+        'description': '移除GCN中非必要非线性层，通过K阶传播实现高效图卷积',
+        'layers': [
+            {'name': 'SGConv1', 'type': 'SGConv(K)', 'input_dim': 'F', 'output_dim': 'H', 'params_formula': 'F×H + H'},
+            {'name': 'SGConv2', 'type': 'SGConv(K)', 'input_dim': 'H', 'output_dim': 'C', 'params_formula': 'H×C + C'},
+        ],
+        'total_params_formula': 'F×H + H + H×C + C',
+        'key_idea': 'S^K X W，移除中间非线性层，K步传播等价于K层GCN',
+    },
+    'APPNP': {
+        'name': 'APPNP (Approximate Personalized PageRank)',
+        'description': '利用个性化PageRank保留节点自身特征，解决过平滑问题',
+        'layers': [
+            {'name': 'Linear1', 'type': 'nn.Linear', 'input_dim': 'F', 'output_dim': 'H', 'params_formula': 'F×H + H'},
+            {'name': 'ReLU', 'type': 'Activation', 'input_dim': 'H', 'output_dim': 'H', 'params_formula': '0'},
+            {'name': 'Linear2', 'type': 'nn.Linear', 'input_dim': 'H', 'output_dim': 'C', 'params_formula': 'H×C + C'},
+            {'name': 'APPNP Prop', 'type': 'APPNP(K, α)', 'input_dim': 'C', 'output_dim': 'C', 'params_formula': '0'},
+        ],
+        'total_params_formula': 'F×H + H + H×C + C',
+        'key_idea': 'PPR近似传播：Z_k = (1-α)SZ_{k-1} + αH，保留初始特征防止过平滑',
+    },
+    'GPRGNN': {
+        'name': 'GPRGNN (Generalized PageRank GNN)',
+        'description': '学习最优PageRank传播系数，自适应调整不同跳的权重',
+        'layers': [
+            {'name': 'Linear1', 'type': 'nn.Linear', 'input_dim': 'F', 'output_dim': 'H', 'params_formula': 'F×H + H'},
+            {'name': 'ReLU', 'type': 'Activation', 'input_dim': 'H', 'output_dim': 'H', 'params_formula': '0'},
+            {'name': 'Linear2', 'type': 'nn.Linear', 'input_dim': 'H', 'output_dim': 'C', 'params_formula': 'H×C + C'},
+            {'name': 'GPR Prop', 'type': 'GPRGNN(K)', 'input_dim': 'C', 'output_dim': 'C', 'params_formula': 'K+1'},
+        ],
+        'total_params_formula': 'F×H + H + H×C + C + K+1',
+        'key_idea': '学习GPR传播系数γ_k，自适应调整不同阶邻居的贡献',
+    },
+    'BernNet': {
+        'name': 'BernNet (Bernstein Polynomial GNN)',
+        'description': '利用Bernstein多项式设计图滤波器，保证非负滤波器系数',
+        'layers': [
+            {'name': 'Linear1', 'type': 'nn.Linear', 'input_dim': 'F', 'output_dim': 'H', 'params_formula': 'F×H + H'},
+            {'name': 'ReLU', 'type': 'Activation', 'input_dim': 'H', 'output_dim': 'H', 'params_formula': '0'},
+            {'name': 'Linear2', 'type': 'nn.Linear', 'input_dim': 'H', 'output_dim': 'C', 'params_formula': 'H×C + C'},
+            {'name': 'BernNet Prop', 'type': 'BernNet(K)', 'input_dim': 'C', 'output_dim': 'C', 'params_formula': 'K+1'},
+        ],
+        'total_params_formula': 'F×H + H + H×C + C + K+1',
+        'key_idea': 'Bernstein多项式基保证滤波器系数非负，B_K(λ)=Σ C(K,i)/2^K · θ_i · T_i',
+    },
+    'GCN2': {
+        'name': 'GCN2 (Deep GCN with Initial residual)',
+        'description': '通过初始残差和恒等映射实现深层GCN，缓解过平滑',
+        'layers': [
+            {'name': 'Linear0', 'type': 'nn.Linear', 'input_dim': 'F', 'output_dim': 'H', 'params_formula': 'F×H + H'},
+            {'name': 'GCN2Conv×L', 'type': 'GCN2Conv', 'input_dim': 'H', 'output_dim': 'H', 'params_formula': 'L×(H×H + H + 2)'},
+            {'name': 'Linear_out', 'type': 'nn.Linear', 'input_dim': 'H', 'output_dim': 'C', 'params_formula': 'H×C + C'},
+        ],
+        'total_params_formula': 'F×H + H + L×(H²+H+2) + H×C + C',
+        'key_idea': '初始残差连接αx₀ + βx + 恒等映射，允许训练极深层GCN',
+    },
+    'EvenNet': {
+        'name': 'EvenNet (Even-degree Polynomial GNN)',
+        'description': '利用偶数阶多项式设计图滤波器，天然适应异配图',
+        'layers': [
+            {'name': 'Linear1', 'type': 'nn.Linear', 'input_dim': 'F', 'output_dim': 'H', 'params_formula': 'F×H + H'},
+            {'name': 'ReLU', 'type': 'Activation', 'input_dim': 'H', 'output_dim': 'H', 'params_formula': '0'},
+            {'name': 'Linear2', 'type': 'nn.Linear', 'input_dim': 'H', 'output_dim': 'C', 'params_formula': 'H×C + C'},
+            {'name': 'EvenNet Prop', 'type': 'EvenNet(K)', 'input_dim': 'C', 'output_dim': 'C', 'params_formula': 'K/2+1'},
+        ],
+        'total_params_formula': 'F×H + H + H×C + C + K/2+1',
+        'key_idea': '偶数阶多项式滤波器天然抑制高频噪声，对异配图更鲁棒',
+    },
+    'ChebConv': {
+        'name': 'ChebConv (Chebyshev Convolution)',
+        'description': '经典切比雪夫图卷积，通过K阶多项式近似图滤波器',
+        'layers': [
+            {'name': 'ChebConv1', 'type': 'ChebConv(K)', 'input_dim': 'F', 'output_dim': 'H', 'params_formula': 'K×F×H + H'},
+            {'name': 'ReLU', 'type': 'Activation', 'input_dim': 'H', 'output_dim': 'H', 'params_formula': '0'},
+            {'name': 'ChebConv2', 'type': 'ChebConv(K)', 'input_dim': 'H', 'output_dim': 'C', 'params_formula': 'K×H×C + C'},
+        ],
+        'total_params_formula': 'K×F×H + H + K×H×C + C',
+        'key_idea': 'K阶切比雪夫多项式 T_k(L̃)XW，局部化K跳邻域的谱域滤波',
+    },
+    'OptBasisGNN': {
+        'name': 'OptBasisGNN (Optimal Basis GNN)',
+        'description': '学习最优正交基函数实现图传播，统一多种传播GNN',
+        'layers': [
+            {'name': 'Linear1', 'type': 'nn.Linear', 'input_dim': 'F', 'output_dim': 'H', 'params_formula': 'F×H + H'},
+            {'name': 'ReLU', 'type': 'Activation', 'input_dim': 'H', 'output_dim': 'H', 'params_formula': '0'},
+            {'name': 'OptBasis Prop', 'type': 'OptBasisConv(K)', 'input_dim': 'H', 'output_dim': 'H', 'params_formula': 'K+1'},
+            {'name': 'Linear2', 'type': 'nn.Linear', 'input_dim': 'H', 'output_dim': 'C', 'params_formula': 'H×C + C'},
+        ],
+        'total_params_formula': 'F×H + H + K+1 + H×C + C',
+        'key_idea': '学习最优正交基系数，统一SGC/APPNP/GPRGNN等传播方案',
+    },
+}
+
+DATASET_STATS = {
+    'Cora': {
+        'nodes': 2708, 'edges': 10556, 'features': 1433, 'classes': 7,
+        'train_ratio': '5.2%', 'val_ratio': '4.8%', 'test_ratio': '90.0%',
+        'avg_degree': 3.90, 'density': 0.0014, 'is_directed': False,
+        'task': '节点分类', 'domain': '学术论文',
+        'class_distribution': [418, 426, 418, 351, 298, 418, 379],
+        'class_names': ['Case_Based', 'Genetic_Algorithms', 'Neural_Networks', 'Probabilistic_Methods', 'Reinforcement_Learning', 'Rule_Learning', 'Theory'],
+        'description': 'Cora数据集包含2708篇机器学习论文，分为7个类别。论文之间的引用关系构成图结构，每篇论文有1433维词袋特征向量。'
+    },
+    'Citeseer': {
+        'nodes': 3327, 'edges': 9104, 'features': 3703, 'classes': 6,
+        'train_ratio': '3.6%', 'val_ratio': '3.3%', 'test_ratio': '93.1%',
+        'avg_degree': 2.74, 'density': 0.0008, 'is_directed': False,
+        'task': '节点分类', 'domain': '学术论文',
+        'class_distribution': [596, 468, 418, 402, 701, 742],
+        'class_names': ['Agents', 'AI', 'DB', 'HCI', 'IR', 'ML'],
+        'description': 'Citeseer数据集包含3327篇学术论文，分为6个类别。论文引用关系构成图，特征为3703维词袋向量。'
+    },
+    'Pubmed': {
+        'nodes': 19717, 'edges': 88648, 'features': 500, 'classes': 3,
+        'train_ratio': '0.3%', 'val_ratio': '0.3%', 'test_ratio': '99.4%',
+        'avg_degree': 4.50, 'density': 0.0002, 'is_directed': False,
+        'task': '节点分类', 'domain': '生物医学',
+        'class_distribution': [7875, 6308, 5534],
+        'class_names': ['Diabetes_Type1', 'Diabetes_Type2', 'Diabetes_Experimental'],
+        'description': 'Pubmed数据集包含19717篇糖尿病相关论文，分为3个类别，500维TF-IDF特征向量。'
+    },
+    'Computers': {
+        'nodes': 13752, 'edges': 491722, 'features': 767, 'classes': 10,
+        'train_ratio': '2.0%', 'val_ratio': '2.0%', 'test_ratio': '96.0%',
+        'avg_degree': 35.76, 'density': 0.0026, 'is_directed': False,
+        'task': '节点分类', 'domain': '商品网络',
+        'class_distribution': [836, 972, 1242, 1080, 1714, 1558, 1838, 1432, 1612, 1468],
+        'class_names': ['Desktop', 'Laptop', 'Tablets', 'Monitors', 'Hard_Drives', 'Printers', 'Routers', 'Software', 'Accessories', 'Networking'],
+        'description': 'Amazon Computers数据集包含13752个电脑产品，基于共同购买关系构建图，10个产品类别。'
+    },
+    'Photo': {
+        'nodes': 7650, 'edges': 238162, 'features': 745, 'classes': 8,
+        'train_ratio': '3.6%', 'val_ratio': '3.6%', 'test_ratio': '92.8%',
+        'avg_degree': 31.13, 'density': 0.0041, 'is_directed': False,
+        'task': '节点分类', 'domain': '商品网络',
+        'class_distribution': [748, 834, 912, 1056, 1234, 998, 876, 992],
+        'class_names': ['Cameras', 'Lenses', 'Tripods', 'Bags', 'Flash', 'Filters', 'Lighting', 'Accessories'],
+        'description': 'Amazon Photo数据集包含7650个摄影产品，基于共同购买关系构建图，8个产品类别。'
+    },
+    'Chameleon': {
+        'nodes': 2277, 'edges': 36101, 'features': 128, 'classes': 5,
+        'train_ratio': '4.8%', 'val_ratio': '4.8%', 'test_ratio': '90.4%',
+        'avg_degree': 15.80, 'density': 0.0069, 'is_directed': False,
+        'task': '节点分类', 'domain': '维基百科',
+        'class_distribution': [322, 498, 576, 518, 363],
+        'class_names': ['Class1', 'Class2', 'Class3', 'Class4', 'Class5'],
+        'description': 'Chameleon是维基百科页面网络，节点是网页，边是页面间链接，任务是预测页面流量类别。'
+    },
+    'Squirrel': {
+        'nodes': 5201, 'edges': 217073, 'features': 128, 'classes': 5,
+        'train_ratio': '2.1%', 'val_ratio': '2.1%', 'test_ratio': '95.8%',
+        'avg_degree': 41.70, 'density': 0.0080, 'is_directed': False,
+        'task': '节点分类', 'domain': '维基百科',
+        'class_distribution': [812, 1098, 1342, 1102, 847],
+        'class_names': ['Class1', 'Class2', 'Class3', 'Class4', 'Class5'],
+        'description': 'Squirrel是维基百科页面网络，比Chameleon更大更稠密，是异配图benchmark。'
+    },
+    'Reddit': {
+        'nodes': 232965, 'edges': 114615892, 'features': 602, 'classes': 41,
+        'train_ratio': '0.3%', 'val_ratio': '0.3%', 'test_ratio': '99.4%',
+        'avg_degree': 492.98, 'density': 0.0002, 'is_directed': False,
+        'task': '节点分类', 'domain': '社交网络',
+        'class_distribution': [5684]*41,
+        'class_names': [f'Subreddit_{i}' for i in range(41)],
+        'description': 'Reddit数据集包含232965个帖子节点，基于评论关系构建图，41个社区类别，是大规模GNN benchmark。'
+    },
+}
+
+EMBEDDING_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'embedding_data.json')
+SENSITIVITY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sensitivity_status.json')
+SENSITIVITY_TRAIN_STATUS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sensitivity_train_status.json')
+
+import sys as _sys
+PYTHON_EXEC = _sys.executable
+
 def init_status_file():
     if not os.path.exists(STATUS_FILE):
         status = {
@@ -737,6 +961,145 @@ def stop_training():
     status['running'] = False
     write_training_status(status)
     return jsonify({'success': True, 'message': 'Training stopped'})
+
+@app.route('/api/dataset-stats/<dataset_name>')
+def get_dataset_stats(dataset_name):
+    stats = DATASET_STATS.get(dataset_name)
+    if stats is None:
+        return jsonify({'error': f'No stats for dataset {dataset_name}'}), 404
+    return jsonify(stats)
+
+@app.route('/api/model-arch/<model_name>')
+def get_model_arch(model_name):
+    arch = MODEL_ARCH_INFO.get(model_name)
+    if arch is None:
+        return jsonify({'error': f'No architecture info for model {model_name}'}), 404
+    return jsonify(arch)
+
+@app.route('/api/embedding')
+def get_embedding():
+    if not os.path.exists(EMBEDDING_FILE):
+        return jsonify({'available': False})
+    try:
+        with open(EMBEDDING_FILE, 'r') as f:
+            data = json.load(f)
+        return jsonify({'available': True, 'data': data})
+    except Exception:
+        return jsonify({'available': False})
+
+@app.route('/api/sensitivity', methods=['POST'])
+def run_sensitivity():
+    data = request.get_json()
+    model_name = data.get('model_name', 'GCN')
+    dataset_name = data.get('dataset_name', 'Cora')
+    param_name = data.get('param_name', 'lr')
+    param_values = data.get('param_values', [])
+    base_params = data.get('base_params', {})
+    epochs = data.get('epochs', 100)
+
+    if not param_values:
+        return jsonify({'error': 'No param values provided'}), 400
+
+    sensitivity_status = {
+        'running': True,
+        'completed': 0,
+        'total': len(param_values),
+        'results': [],
+        'error': None
+    }
+    with open(SENSITIVITY_FILE, 'w') as f:
+        json.dump(sensitivity_status, f)
+
+    def run_sensitivity_worker():
+        import subprocess
+
+        results = []
+        for i, val in enumerate(param_values):
+            worker_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'train_worker.py')
+            params = dict(base_params)
+            params[param_name] = val
+
+            cmd = [
+                PYTHON_EXEC,
+                worker_path,
+                '--model', model_name,
+                '--dataset', dataset_name,
+                '--epochs', str(epochs),
+                '--status-file', SENSITIVITY_TRAIN_STATUS,
+            ]
+            for k, v in params.items():
+                cmd.extend([f'--{k}', str(v)])
+
+            try:
+                process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,
+                    universal_newlines=True
+                )
+
+                for line in process.stdout:
+                    print(f"[SENS-{i}] {line.rstrip()}")
+
+                process.wait()
+
+                try:
+                    with open(SENSITIVITY_TRAIN_STATUS, 'r') as f:
+                        train_status = json.load(f)
+                    acc_history = train_status.get('history', {}).get('acc', [])
+                    loss_history = train_status.get('history', {}).get('loss', [])
+                    best_acc = max(acc_history) if acc_history else 0
+                    final_loss = loss_history[-1] if loss_history else 0
+                except Exception as e:
+                    print(f"[SENS-{i}] Failed to read train status: {e}")
+                    best_acc = 0
+                    final_loss = 0
+
+                results.append({
+                    'param_value': val,
+                    'best_acc': best_acc,
+                    'final_loss': final_loss
+                })
+            except Exception as e:
+                print(f"[SENS-{i}] Exception: {e}")
+                results.append({
+                    'param_value': val,
+                    'best_acc': 0,
+                    'final_loss': 0,
+                    'error': str(e)
+                })
+
+            sensitivity_status = {
+                'running': True,
+                'completed': i + 1,
+                'total': len(param_values),
+                'results': results,
+                'error': None
+            }
+            with open(SENSITIVITY_FILE, 'w') as f:
+                json.dump(sensitivity_status, f)
+
+        sensitivity_status['running'] = False
+        with open(SENSITIVITY_FILE, 'w') as f:
+            json.dump(sensitivity_status, f)
+
+    thread = threading.Thread(target=run_sensitivity_worker, daemon=True)
+    thread.start()
+
+    return jsonify({'status': 'Sensitivity analysis started'})
+
+@app.route('/api/sensitivity-status')
+def get_sensitivity_status():
+    if not os.path.exists(SENSITIVITY_FILE):
+        return jsonify({'running': False, 'completed': 0, 'total': 0, 'results': [], 'error': None})
+    try:
+        with open(SENSITIVITY_FILE, 'r') as f:
+            status = json.load(f)
+        return jsonify(status)
+    except Exception:
+        return jsonify({'running': False, 'completed': 0, 'total': 0, 'results': [], 'error': None})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)

@@ -18,10 +18,11 @@ def main():
     parser.add_argument('--K', type=int, default=3)
     parser.add_argument('--alpha', type=float, default=0.1)
     parser.add_argument('--lambda', type=float, default=0.5)
+    parser.add_argument('--status-file', type=str, default=None)
     args = parser.parse_args()
 
     frontend_dir = os.path.dirname(os.path.abspath(__file__))
-    status_file = os.path.join(frontend_dir, 'training_status.json')
+    status_file = args.status_file if args.status_file else os.path.join(frontend_dir, 'training_status.json')
 
     def init_status():
         status = {
@@ -746,6 +747,69 @@ def main():
         status['finished'] = True
         status['acc'] = test_acc
         update_status(status)
+
+        try:
+            model.eval()
+            if hasattr(model, 'get_hidden'):
+                hidden_output = model.get_hidden()
+            else:
+                hidden_output = model()
+
+            if hasattr(hidden_output, 'numpy'):
+                hidden_np = hidden_output.numpy()
+            elif hasattr(hidden_output, 'data'):
+                hidden_np = hidden_output.data
+            else:
+                hidden_np = np.array(hidden_output)
+
+            labels = data.y
+            if hasattr(labels, 'numpy'):
+                labels_np = labels.numpy()
+            elif hasattr(labels, 'data'):
+                labels_np = labels.data
+            else:
+                labels_np = np.array(labels)
+
+            if len(labels_np.shape) > 1:
+                labels_np = labels_np.flatten()
+
+            import numpy as np
+            if hidden_np.shape[1] > 2:
+                mean = np.mean(hidden_np, axis=0)
+                centered = hidden_np - mean
+                cov = np.dot(centered.T, centered) / centered.shape[0]
+                eigenvalues, eigenvectors = np.linalg.eigh(cov)
+                idx = np.argsort(eigenvalues)[::-1]
+                eigenvectors = eigenvectors[:, idx]
+                coords_2d = np.dot(centered, eigenvectors[:, :2])
+            else:
+                coords_2d = hidden_np
+
+            max_samples = 2000
+            if coords_2d.shape[0] > max_samples:
+                indices = np.random.choice(coords_2d.shape[0], max_samples, replace=False)
+                coords_2d = coords_2d[indices]
+                labels_np = labels_np[indices]
+
+            embedding_data = {
+                'coords': coords_2d.tolist(),
+                'labels': labels_np.tolist(),
+                'model': args.model,
+                'dataset': args.dataset,
+                'num_nodes': int(len(labels_np)),
+                'num_classes': int(len(set(labels_np.tolist()))),
+                'method': 'PCA'
+            }
+
+            embedding_file = os.path.join(frontend_dir, 'embedding_data.json')
+            with open(embedding_file, 'w') as f:
+                json.dump(embedding_data, f)
+
+            print(f"[EMBEDDING] Saved {len(labels_np)} node embeddings to {embedding_file}")
+        except Exception as e:
+            import traceback
+            print(f"[EMBEDDING] Failed to save embeddings: {e}")
+            print(f"[EMBEDDING] {traceback.format_exc()}")
 
     except Exception as e:
         import traceback

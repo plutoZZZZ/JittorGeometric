@@ -294,6 +294,223 @@
             border-radius: 3px;
             border: 1px solid rgba(0,0,0,0.1);
         }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .stat-card .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a237e;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+        .stats-charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .dataset-desc {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.8;
+        }
+        .embedding-canvas-wrap {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .embedding-canvas-wrap h3 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        .embedding-legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+        .embedding-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #555;
+        }
+        .embedding-legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .sensitivity-controls {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            margin-bottom: 16px;
+        }
+        .sensitivity-controls .form-row {
+            display: flex;
+            gap: 12px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+        .sensitivity-controls .form-col {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .sensitivity-controls .form-col label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+        }
+        .sensitivity-controls .form-col select,
+        .sensitivity-controls .form-col input {
+            padding: 6px 10px;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .sensitivity-controls .btn-scan {
+            padding: 8px 20px;
+            background: linear-gradient(135deg, #1a237e, #283593);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .sensitivity-controls .btn-scan:disabled {
+            background: #bbb;
+            cursor: not-allowed;
+        }
+        .sensitivity-progress {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+        }
+        .arch-header {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            margin-bottom: 16px;
+        }
+        .arch-header h3 {
+            font-size: 16px;
+            color: #1a237e;
+            margin-bottom: 8px;
+        }
+        .arch-header p {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+        .arch-layers {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            margin-bottom: 16px;
+        }
+        .arch-layers h3 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 16px;
+        }
+        .arch-layer-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+        .arch-layer-row:hover {
+            background: #f5f5f5;
+        }
+        .arch-layer-idx {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #1a237e;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .arch-layer-info {
+            flex: 1;
+        }
+        .arch-layer-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+        }
+        .arch-layer-type {
+            font-size: 11px;
+            color: #888;
+        }
+        .arch-layer-dims {
+            font-size: 11px;
+            color: #1a237e;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        .arch-layer-params {
+            font-size: 11px;
+            color: #666;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        .arch-idea {
+            background: linear-gradient(135deg, #e8eaf6, #f3e5f5);
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .arch-idea h3 {
+            font-size: 14px;
+            color: #1a237e;
+            margin-bottom: 8px;
+        }
+        .arch-idea p {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        .arch-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
     </style>
 </head>
 <body>
@@ -327,7 +544,7 @@
             </div>
             <div class="form-group">
                 <label>数据集</label>
-                <select id="dataset_name">
+                <select id="dataset_name" onchange="loadDatasetStats()">
                 </select>
             </div>
             <div class="form-group">
@@ -357,6 +574,10 @@
                 <button class="tab-btn active" onclick="switchTab('training', this)">训练监控</button>
                 <button class="tab-btn" onclick="switchTab('graph', this)">计算图</button>
                 <button class="tab-btn" onclick="switchTab('fusion', this)">算子融合</button>
+                <button class="tab-btn" onclick="switchTab('dataset', this)">数据集分析</button>
+                <button class="tab-btn" onclick="switchTab('embedding', this)">嵌入可视化</button>
+                <button class="tab-btn" onclick="switchTab('sensitivity', this)">敏感性分析</button>
+                <button class="tab-btn" onclick="switchTab('architecture', this)">模型架构</button>
             </div>
 
             <div class="tab-content active" id="tab-training">
@@ -416,18 +637,91 @@
                     </div>
                 </div>
             </div>
+
+            <div class="tab-content" id="tab-dataset">
+                <div id="datasetContent">
+                    <p style="color: #999; font-size: 13px;">请选择数据集以查看统计分析。</p>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-embedding">
+                <div class="embedding-canvas-wrap">
+                    <h3>节点嵌入可视化 <span style="font-weight: normal; color: #999; font-size: 12px;">（PCA降维 · 按类别着色）</span></h3>
+                    <canvas id="embeddingCanvas" width="800" height="500" style="width:100%;max-height:500px;background:#fafafa;border-radius:6px;"></canvas>
+                    <div class="embedding-legend" id="embeddingLegend"></div>
+                    <p id="embeddingHint" style="color:#999;font-size:12px;margin-top:8px;">训练完成后自动生成嵌入可视化</p>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-sensitivity">
+                <div class="sensitivity-controls">
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>扫描参数</label>
+                            <select id="sensitivity_param" onchange="updateSensitivityRange()">
+                                <option value="lr">学习率 (lr)</option>
+                                <option value="dropout">Dropout率</option>
+                                <option value="hidden_dim">隐藏层维度</option>
+                                <option value="weight_decay">权重衰减</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label>参数范围</label>
+                            <input type="text" id="sensitivity_range" value="0.001,0.005,0.01,0.05,0.1" style="width:220px;" placeholder="逗号分隔的参数值">
+                        </div>
+                        <div class="form-col">
+                            <label>训练轮数</label>
+                            <input type="number" id="sensitivity_epochs" value="100" min="10" max="500" style="width:80px;">
+                        </div>
+                        <button class="btn-scan" id="sensitivity_btn" onclick="startSensitivity()">开始扫描</button>
+                    </div>
+                    <div class="sensitivity-progress" id="sensitivity_progress"></div>
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>精度 vs 参数值</h3>
+                        <canvas id="sensitivityAccChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>损失 vs 参数值</h3>
+                        <canvas id="sensitivityLossChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-architecture">
+                <div id="archContent">
+                    <p style="color: #999; font-size: 13px;">请选择模型以查看架构信息。</p>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         let currentGraphInfo = null;
         let bestAcc = 0;
+        let sensitivityAccChart = null;
+        let sensitivityLossChart = null;
+
+        const EMBEDDING_COLORS = [
+            '#e53935','#1e88e5','#43a047','#fb8c00','#8e24aa',
+            '#00acc1','#f4511e','#3949ab','#7cb342','#c0ca33',
+            '#6d4c41','#00897b','#546e7a','#d81b60','#5e35b1',
+            '#039be5','#00c853','#ff6d00','#9c27b0','#0097a7',
+            '#ef5350','#42a5f5','#66bb6a','#ffa726','#ab47bc',
+            '#26c6da','#ff7043','#5c6bc0','#9ccc65','#ffee58',
+            '#8d6e63','#26a69a','#78909c','#ec407a','#7e57c2',
+            '#29b6f6','#69f0ae','#ffab40','#ba68c8','#4dd0e1',
+            '#ff8a65'
+        ];
 
         async function onModelChange() {
             const model = document.getElementById('model_name').value;
             await updateDatasets(model);
             await updateParams(model);
             await loadGraphInfo(model);
+            await loadDatasetStats();
+            await loadModelArch(model);
         }
 
         async function updateDatasets(model) {
@@ -459,11 +753,16 @@
             }
         }
 
+        let currentEmbeddingData = null;
+
         function switchTab(tabName, btn) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
             btn.classList.add('active');
             document.getElementById('tab-' + tabName).classList.add('active');
+            if (tabName === 'embedding' && currentEmbeddingData) {
+                setTimeout(() => renderEmbedding(currentEmbeddingData), 50);
+            }
         }
 
         const lossCtx = document.getElementById('lossChart').getContext('2d');
@@ -822,6 +1121,7 @@
                             } else {
                                 statusText.textContent = `训练完成 | 最佳精度: ${bestAcc.toFixed(4)}`;
                                 statusText.className = 'status-text completed';
+                                loadEmbedding();
                             }
                         }
                     }
@@ -834,8 +1134,361 @@
             }
         }
 
+        async function loadDatasetStats() {
+            const dataset = document.getElementById('dataset_name').value;
+            try {
+                const resp = await fetch('/api/dataset-stats/' + dataset);
+                const stats = await resp.json();
+                if (stats.error) return;
+                renderDatasetStats(stats);
+            } catch (e) {
+                console.error('Failed to load dataset stats:', e);
+            }
+        }
+
+        function renderDatasetStats(stats) {
+            const container = document.getElementById('datasetContent');
+            let html = '';
+
+            html += '<div class="dataset-desc">' + (stats.description || '') + '</div>';
+
+            html += '<div class="stats-grid">';
+            const statItems = [
+                {value: stats.nodes?.toLocaleString(), label: '节点数'},
+                {value: stats.edges?.toLocaleString(), label: '边数'},
+                {value: stats.features, label: '特征维度'},
+                {value: stats.classes, label: '类别数'},
+                {value: stats.avg_degree, label: '平均度'},
+                {value: stats.density, label: '图密度'},
+                {value: stats.train_ratio, label: '训练集比例'},
+                {value: stats.task, label: '任务类型'},
+            ];
+            statItems.forEach(item => {
+                html += `<div class="stat-card"><div class="stat-value">${item.value}</div><div class="stat-label">${item.label}</div></div>`;
+            });
+            html += '</div>';
+
+            html += '<div class="stats-charts-grid">';
+            html += '<div class="chart-card"><h3>类别分布</h3><canvas id="classDistChart"></canvas></div>';
+            html += '<div class="chart-card"><h3>数据集属性对比</h3><canvas id="datasetRadarChart"></canvas></div>';
+            html += '</div>';
+
+            container.innerHTML = html;
+
+            const classDistCtx = document.getElementById('classDistChart');
+            if (classDistCtx) {
+                new Chart(classDistCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: stats.class_names || [],
+                        datasets: [{
+                            label: '样本数',
+                            data: stats.class_distribution || [],
+                            backgroundColor: (stats.class_distribution || []).map((_, i) => EMBEDDING_COLORS[i % EMBEDDING_COLORS.length] + '99'),
+                            borderColor: (stats.class_distribution || []).map((_, i) => EMBEDDING_COLORS[i % EMBEDDING_COLORS.length]),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        animation: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, title: { display: true, text: '样本数' } } }
+                    }
+                });
+            }
+
+            const radarCtx = document.getElementById('datasetRadarChart');
+            if (radarCtx) {
+                const maxNodes = 250000;
+                const maxEdges = 120000000;
+                const maxFeatures = 4000;
+                const maxAvgDeg = 500;
+                new Chart(radarCtx.getContext('2d'), {
+                    type: 'radar',
+                    data: {
+                        labels: ['节点数', '边数', '特征维度', '类别数', '平均度'],
+                        datasets: [{
+                            label: stats.domain || 'Dataset',
+                            data: [
+                                (stats.nodes || 0) / maxNodes * 100,
+                                (stats.edges || 0) / maxEdges * 100,
+                                (stats.features || 0) / maxFeatures * 100,
+                                (stats.classes || 0) / 41 * 100,
+                                (stats.avg_degree || 0) / maxAvgDeg * 100
+                            ],
+                            backgroundColor: 'rgba(26,35,126,0.15)',
+                            borderColor: '#1a237e',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#1a237e'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        animation: false,
+                        scales: { r: { beginAtZero: true, max: 100, ticks: { display: false } } },
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            }
+        }
+
+        async function loadEmbedding() {
+            try {
+                const resp = await fetch('/api/embedding?' + new Date().getTime(), { cache: 'no-store' });
+                const result = await resp.json();
+                if (result.available && result.data) {
+                    currentEmbeddingData = result.data;
+                    const tabEl = document.getElementById('tab-embedding');
+                    if (tabEl && tabEl.classList.contains('active')) {
+                        renderEmbedding(result.data);
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load embedding:', e);
+            }
+        }
+
+        function renderEmbedding(data) {
+            const canvas = document.getElementById('embeddingCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            const displayW = 800;
+            const displayH = 500;
+            canvas.width = displayW;
+            canvas.height = displayH;
+            canvas.style.width = '100%';
+            canvas.style.height = 'auto';
+            canvas.style.maxHeight = '500px';
+
+            ctx.clearRect(0, 0, displayW, displayH);
+
+            const coords = data.coords || [];
+            const labels = data.labels || [];
+            if (coords.length === 0) return;
+
+            const uniqueLabels = [...new Set(labels)].sort((a, b) => a - b);
+
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            coords.forEach(c => {
+                minX = Math.min(minX, c[0]); maxX = Math.max(maxX, c[0]);
+                minY = Math.min(minY, c[1]); maxY = Math.max(maxY, c[1]);
+            });
+
+            const pad = 40;
+            const w = displayW - pad * 2;
+            const h = displayH - pad * 2;
+            const rangeX = maxX - minX || 1;
+            const rangeY = maxY - minY || 1;
+            const scale = Math.min(w / rangeX, h / rangeY);
+
+            ctx.fillStyle = '#fafafa';
+            ctx.fillRect(0, 0, displayW, displayH);
+
+            coords.forEach((c, i) => {
+                const x = pad + (c[0] - minX) * scale + (w - rangeX * scale) / 2;
+                const y = pad + (c[1] - minY) * scale + (h - rangeY * scale) / 2;
+                const labelIdx = uniqueLabels.indexOf(labels[i]);
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = EMBEDDING_COLORS[labelIdx % EMBEDDING_COLORS.length] + 'cc';
+                ctx.fill();
+            });
+
+            const legendDiv = document.getElementById('embeddingLegend');
+            if (legendDiv && data.num_classes <= 20) {
+                legendDiv.innerHTML = uniqueLabels.map((lbl, i) =>
+                    `<div class="embedding-legend-item"><div class="embedding-legend-dot" style="background:${EMBEDDING_COLORS[i % EMBEDDING_COLORS.length]}"></div>Class ${lbl}</div>`
+                ).join('');
+            }
+
+            const hint = document.getElementById('embeddingHint');
+            if (hint) {
+                hint.textContent = `${data.model} · ${data.dataset} · ${data.num_nodes}节点 · ${data.num_classes}类 · ${data.method}降维`;
+            }
+        }
+
+        async function loadModelArch(modelName) {
+            try {
+                const resp = await fetch('/api/model-arch/' + modelName);
+                const arch = await resp.json();
+                if (arch.error) return;
+                renderModelArch(arch);
+            } catch (e) {
+                console.error('Failed to load model arch:', e);
+            }
+        }
+
+        function renderModelArch(arch) {
+            const container = document.getElementById('archContent');
+            let html = '';
+
+            html += '<div class="arch-header">';
+            html += `<h3>${arch.name}</h3>`;
+            html += `<p>${arch.description}</p>`;
+            html += '</div>';
+
+            html += '<div class="arch-summary-grid">';
+            html += `<div class="stat-card"><div class="stat-value">${arch.layers ? arch.layers.length : '-'}</div><div class="stat-label">网络层数</div></div>`;
+            const convLayers = (arch.layers || []).filter(l => l.type && !['Activation', 'Regularization'].includes(l.type));
+            html += `<div class="stat-card"><div class="stat-value">${convLayers.length}</div><div class="stat-label">可学习层</div></div>`;
+            html += `<div class="stat-card"><div class="stat-value" style="font-size:14px;">${arch.total_params_formula || '-'}</div><div class="stat-label">参数量公式</div></div>`;
+            html += '</div>';
+
+            html += '<div class="arch-layers">';
+            html += '<h3>网络层结构</h3>';
+            (arch.layers || []).forEach((layer, idx) => {
+                const isLearnable = !['Activation', 'Regularization'].includes(layer.type);
+                html += `<div class="arch-layer-row">`;
+                html += `<div class="arch-layer-idx">${idx + 1}</div>`;
+                html += `<div class="arch-layer-info">`;
+                html += `<div class="arch-layer-name">${layer.name}</div>`;
+                html += `<div class="arch-layer-type">${layer.type}</div>`;
+                html += `</div>`;
+                html += `<div class="arch-layer-dims">${layer.input_dim} → ${layer.output_dim}</div>`;
+                html += `<div class="arch-layer-params">${layer.params_formula}</div>`;
+                html += `</div>`;
+            });
+            html += '</div>';
+
+            html += '<div class="arch-idea">';
+            html += '<h3>核心思想</h3>';
+            html += `<p>${arch.key_idea || ''}</p>`;
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+
+        function initSensitivityCharts() {
+            const accCtx = document.getElementById('sensitivityAccChart');
+            const lossCtx = document.getElementById('sensitivityLossChart');
+            if (!accCtx || !lossCtx) return;
+
+            if (sensitivityAccChart) sensitivityAccChart.destroy();
+            if (sensitivityLossChart) sensitivityLossChart.destroy();
+
+            sensitivityAccChart = new Chart(accCtx.getContext('2d'), {
+                type: 'bar',
+                data: { labels: [], datasets: [{ label: '最佳精度', data: [], backgroundColor: 'rgba(26,35,126,0.7)', borderColor: '#1a237e', borderWidth: 1 }] },
+                options: {
+                    responsive: true, animation: false,
+                    scales: { y: { beginAtZero: true, max: 1, title: { display: true, text: '精度' } }, x: { title: { display: true, text: '参数值' } } },
+                    plugins: { legend: { labels: { font: { size: 12 } } } }
+                }
+            });
+
+            sensitivityLossChart = new Chart(lossCtx.getContext('2d'), {
+                type: 'bar',
+                data: { labels: [], datasets: [{ label: '最终损失', data: [], backgroundColor: 'rgba(229,57,53,0.7)', borderColor: '#e53935', borderWidth: 1 }] },
+                options: {
+                    responsive: true, animation: false,
+                    scales: { y: { beginAtZero: true, title: { display: true, text: '损失' } }, x: { title: { display: true, text: '参数值' } } },
+                    plugins: { legend: { labels: { font: { size: 12 } } } }
+                }
+            });
+        }
+
+        function updateSensitivityRange() {
+            const paramName = document.getElementById('sensitivity_param').value;
+            const rangeInput = document.getElementById('sensitivity_range');
+            const presets = {
+                'lr': '0.001,0.005,0.01,0.05,0.1',
+                'dropout': '0.1,0.3,0.5,0.7,0.9',
+                'hidden_dim': '16,32,64,128,256',
+                'weight_decay': '0,1e-5,5e-4,1e-3,5e-3'
+            };
+            rangeInput.value = presets[paramName] || '0.001,0.005,0.01,0.05,0.1';
+        }
+
+        async function startSensitivity() {
+            const btn = document.getElementById('sensitivity_btn');
+            btn.disabled = true;
+
+            const paramName = document.getElementById('sensitivity_param').value;
+            const rangeStr = document.getElementById('sensitivity_range').value;
+            const epochs = parseInt(document.getElementById('sensitivity_epochs').value);
+
+            let paramValues = rangeStr.split(',').map(v => {
+                const trimmed = v.trim();
+                const n = parseFloat(trimmed);
+                if (isNaN(n)) return trimmed;
+                if (paramName === 'hidden_dim') return Math.round(n);
+                return n;
+            });
+
+            const baseParams = {};
+            const dynamicParamsDiv = document.getElementById('dynamic_params');
+            dynamicParamsDiv.querySelectorAll('input').forEach(inp => {
+                const key = inp.id.replace('param_', '');
+                if (key !== paramName) {
+                    const val = parseFloat(inp.value);
+                    if (isNaN(val)) {
+                        baseParams[key] = inp.value;
+                    } else if (key === 'hidden_dim') {
+                        baseParams[key] = Math.round(val);
+                    } else {
+                        baseParams[key] = val;
+                    }
+                }
+            });
+
+            initSensitivityCharts();
+
+            const data = {
+                model_name: document.getElementById('model_name').value,
+                dataset_name: document.getElementById('dataset_name').value,
+                param_name: paramName,
+                param_values: paramValues,
+                base_params: baseParams,
+                epochs: epochs
+            };
+
+            try {
+                const response = await fetch('/api/sensitivity', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (!response.ok) throw new Error('启动失败');
+
+                const interval = setInterval(async () => {
+                    const statusResp = await fetch('/api/sensitivity-status?' + new Date().getTime(), { cache: 'no-store' });
+                    const status = await statusResp.json();
+
+                    const progressDiv = document.getElementById('sensitivity_progress');
+                    progressDiv.textContent = `进度: ${status.completed}/${status.total}`;
+
+                    if (status.results && status.results.length > 0) {
+                        const labels = status.results.map(r => String(r.param_value));
+                        const accs = status.results.map(r => r.best_acc);
+                        const losses = status.results.map(r => r.final_loss);
+
+                        sensitivityAccChart.data.labels = labels;
+                        sensitivityAccChart.data.datasets[0].data = accs;
+                        sensitivityAccChart.update('none');
+
+                        sensitivityLossChart.data.labels = labels;
+                        sensitivityLossChart.data.datasets[0].data = losses;
+                        sensitivityLossChart.update('none');
+                    }
+
+                    if (!status.running) {
+                        clearInterval(interval);
+                        btn.disabled = false;
+                        progressDiv.textContent = `完成: ${status.completed}/${status.total}`;
+                    }
+                }, 2000);
+
+            } catch (error) {
+                btn.disabled = false;
+                document.getElementById('sensitivity_progress').textContent = '错误: ' + error.message;
+            }
+        }
+
         window.onload = function() {
             onModelChange();
+            loadEmbedding();
 
             fetch('/api/status?' + new Date().getTime(), { cache: 'no-store' })
                 .then(r => r.json())
@@ -849,6 +1502,7 @@
                             document.getElementById('status_text').textContent = `训练完成 | 最佳精度: ${status.acc.toFixed(4)}`;
                             document.getElementById('status_text').className = 'status-text completed';
                             document.getElementById('progress_bar').style.width = '100%';
+                            loadEmbedding();
                         }
                     }
                 })
